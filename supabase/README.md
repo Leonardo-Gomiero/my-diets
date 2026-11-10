@@ -104,3 +104,50 @@ WHERE oid IN (
 
 The SQL checks above describe local verification steps; they do not imply that
 this migration has been applied to or tested against a hosted Supabase project.
+
+## Diet and meal migration
+
+The next migration adds `diets`, `meals`, `food_groups`, and `food_options`.
+Apply it to the local Supabase project with the same `supabase db reset`,
+`supabase migration list --local`, and `supabase db lint` commands above.
+Never use production credentials for local validation.
+
+With disposable Auth users and the local admin/student profiles, verify RLS by
+simulating each identity as described above:
+
+- The admin can insert, read, update, and delete diet content. A diet must
+  reference a profile whose database role is `STUDENT`; the role is checked
+  from `profiles`, not accepted from request data.
+- Student A can select only their own `ACTIVE` diet and its meals, food groups,
+  and options. Student B cannot read A's diet tree.
+- A student cannot insert, update, or delete rows in any of the four tables.
+- An inactive student, or a student whose `must_change_password` is true, sees
+  no diet tree.
+- Attempting to create a second `ACTIVE` diet for the same student fails the
+  `diets_one_active_per_student_idx` unique index. Another student may have an
+  active diet.
+- Invalid statuses, negative quantities/macros, blank required names, and
+  duplicate order indexes are rejected by constraints.
+
+Use separate transactions for checks expected to fail, then roll them back.
+Inspect the registered policies and RLS flags with:
+
+```sql
+SELECT tablename, policyname, cmd
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND tablename IN ('diets', 'meals', 'food_groups', 'food_options')
+ORDER BY tablename, policyname;
+
+SELECT relname, relrowsecurity
+FROM pg_class
+WHERE oid IN (
+  'public.diets'::regclass,
+  'public.meals'::regclass,
+  'public.food_groups'::regclass,
+  'public.food_options'::regclass
+);
+```
+
+These are local validation instructions only; they do not assert that the
+migration or policies have been tested against Supabase.
