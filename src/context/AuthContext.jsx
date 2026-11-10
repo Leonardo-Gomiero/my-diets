@@ -129,7 +129,7 @@ export function AuthProvider({ children }) {
     setAuth({
       status: 'authenticated',
       session: auth.session,
-      profile: result.profile,
+      profile,
       mustChangePassword: false,
       error: '',
     });

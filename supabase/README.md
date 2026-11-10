@@ -105,6 +105,49 @@ WHERE oid IN (
 The SQL checks above describe local verification steps; they do not imply that
 this migration has been applied to or tested against a hosted Supabase project.
 
+## Atomic diet operations
+
+The later migrations add two privileged PostgreSQL RPCs:
+
+- `20261110160000_add_atomic_draft_diet_rpc.sql` defines
+  `public.save_draft_diet(uuid, uuid, jsonb)`. It creates or replaces the
+  complete nested draft tree in one transaction, preserves array ordering, and
+  rejects updates when the target diet is no longer a draft.
+- `20261110170000_add_atomic_diet_activation.sql` defines
+  `public.activate_draft_diet(uuid, uuid)`. It validates the student/draft
+  relationship, locks the student's profile, archives the previous active
+  version, and activates the selected draft in one transaction.
+
+Both functions revoke execution from `PUBLIC`, `anon`, and `authenticated` and
+grant it only to `service_role`. The Netlify handlers first authenticate and
+authorize the nutritionist, validate input/ownership, then invoke the RPC.
+Never expose either RPC to browser callers or grant its execution to
+`authenticated`.
+
+After applying migrations to a disposable local Supabase project, verify the
+RPCs exist and that only `service_role` can execute them:
+
+```sql
+SELECT
+  has_function_privilege('anon', 'public.save_draft_diet(uuid, uuid, jsonb)', 'EXECUTE')
+    AS anon_can_save_draft,
+  has_function_privilege('authenticated', 'public.save_draft_diet(uuid, uuid, jsonb)', 'EXECUTE')
+    AS authenticated_can_save_draft,
+  has_function_privilege('service_role', 'public.save_draft_diet(uuid, uuid, jsonb)', 'EXECUTE')
+    AS service_role_can_save_draft,
+  has_function_privilege('authenticated', 'public.activate_draft_diet(uuid, uuid)', 'EXECUTE')
+    AS authenticated_can_activate,
+  has_function_privilege('service_role', 'public.activate_draft_diet(uuid, uuid)', 'EXECUTE')
+    AS service_role_can_activate;
+```
+
+Expected results are `false`, `false`, `true`, `false`, and `true`. Then use
+the admin Function endpoints with disposable users to create/edit a nested
+draft and activate it over an existing active version. Read back the tree and
+confirm ordering and that exactly one diet is active. The local automated
+Function tests use mocked Supabase clients; they do not execute these SQL
+functions or prove RLS behavior against a running database.
+
 ## Inactive student access
 
 The migration `20261110150000_block_inactive_student_reads.sql` tightens the
