@@ -192,7 +192,15 @@ export default function DietsPage() {
                 >
                   Editar
                 </Link>
-                {diet.status !== 'ACTIVE' && (
+                {diet.status === 'ACTIVE' ? (
+                  <Button
+                    type="button"
+                    disabled
+                    aria-label={`Versão ${diet.version} ativada`}
+                  >
+                    Ativado
+                  </Button>
+                ) : (
                   <Button
                     type="button"
                     onClick={() => handleActivate(diet)}

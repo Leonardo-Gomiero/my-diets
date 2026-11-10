@@ -83,6 +83,8 @@ describe('DietsPage', () => {
       .toBe('/admin/patients/patient-1/diets/diet-2/edit');
     expect(screen.getByRole('button', { name: 'Ativar versão 2' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Ativar versão 3' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Versão 1 ativada' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Versão 1 ativada' }).textContent).toBe('Ativado');
     expect(screen.getAllByRole('button', { name: /^Ativar versão/ })).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: /^Duplicar versão/ })).toHaveLength(3);
     expect(screen.getAllByRole('button', { name: /^Excluir versão/ })).toHaveLength(3);
