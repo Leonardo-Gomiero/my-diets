@@ -229,14 +229,23 @@
 
 .patient-actions a {
   align-items: center;
+  background: var(--color-ink);
+  border: 1px solid var(--color-ink);
   border-radius: var(--radius-control);
-  color: var(--color-ink);
+  color: #fff;
   display: inline-flex;
   font-weight: 650;
   justify-content: center;
   min-height: 36px;
   padding: 0 10px;
   text-decoration: none;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.patient-actions a:hover {
+  background: var(--color-ink-hover);
+  border-color: var(--color-ink-hover);
+  transform: translateY(-1px);
 }
 
 .patients-alert--page {

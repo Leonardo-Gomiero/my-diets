@@ -657,7 +657,7 @@ export default function PatientsPage() {
                 <th scope="col">E-mail</th>
                 <th scope="col">Telefone</th>
                 <th scope="col">Status</th>
-                <th scope="col"><span className="visually-hidden">Ações</span></th>
+                <th scope="col"><span className="visually-hidden">Acesso às dietas</span></th>
               </tr>
             </thead>
             <tbody>
@@ -756,7 +756,7 @@ export default function PatientsPage() {
                       {patient.is_active ? 'Ativo' : 'Inativo'}
                     </span>
                   </td>
-                  <td className="patient-actions" data-label="Ações">
+                  <td className="patient-actions">
                     <a
                       className="button button--quiet"
                       href={`/admin/patients/${encodeURIComponent(patient.id)}/diets`}

@@ -115,6 +115,8 @@ describe('PatientsPage', () => {
     expect(screen.getByRole('button', { name: 'Opções de Ana Exemplo' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Opções de Bia Inativa' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Editar Ana Exemplo' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Dietas' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Ações' })).toBeNull();
   });
 
   it('opens patient actions from the gear button and closes the menu with Escape', async () => {
