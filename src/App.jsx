@@ -69,6 +69,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/admin/patients/:patientId/diets/:dietId/edit"
+          element={
+            <MainLayout>
+              <DietEditorPage />
+            </MainLayout>
+          }
+        />
+        <Route
           path="/admin"
           element={
             <MainLayout>

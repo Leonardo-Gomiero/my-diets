@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   activateDiet,
-  createDietDraft,
+  createDiet,
+  getDiet,
   getDietHistory,
-  updateDietDraft,
+  updateDiet,
 } from './dietService.js';
 
 const diet = {
@@ -26,10 +27,10 @@ function response(data, { ok = true, status = 200 } = {}) {
 }
 
 describe('dietService', () => {
-  it('creates a draft through the patient endpoint', async () => {
+  it('creates a diet through the patient endpoint', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(response({ data: { diet } }));
     await expect(
-      createDietDraft('patient id', payload, {
+      createDiet('patient id', payload, {
         accessToken: 'token',
         fetchImpl,
       }),
@@ -48,10 +49,10 @@ describe('dietService', () => {
     );
   });
 
-  it('updates a draft through the diet endpoint', async () => {
+  it('updates a diet through the diet endpoint', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(response({ data: { diet } }));
     await expect(
-      updateDietDraft('diet/1', payload, {
+      updateDiet('diet/1', payload, {
         accessToken: 'token',
         fetchImpl,
       }),
@@ -75,8 +76,8 @@ describe('dietService', () => {
       ),
     );
     await expect(
-      updateDietDraft('diet-1', payload, { accessToken: 'token', fetchImpl }),
-    ).rejects.toThrow('Somente rascunhos podem ser editados ou ativados.');
+      updateDiet('diet-1', payload, { accessToken: 'token', fetchImpl }),
+    ).rejects.toThrow('Não foi possível editar esta dieta.');
   });
 
   it('rejects malformed success payloads', async () => {
@@ -84,8 +85,27 @@ describe('dietService', () => {
       response({ data: { diet: { id: 'diet-1' } } }),
     );
     await expect(
-      createDietDraft('patient-1', payload, { accessToken: 'token', fetchImpl }),
+      createDiet('patient-1', payload, { accessToken: 'token', fetchImpl }),
     ).rejects.toThrow('O serviço retornou uma resposta inválida.');
+  });
+
+  it('loads any existing diet for editing', async () => {
+    const activeDiet = {
+      ...diet,
+      status: 'ACTIVE',
+      meals: [],
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(
+      response({ data: { diet: activeDiet } }),
+    );
+
+    await expect(
+      getDiet('diet-1', { accessToken: 'token', fetchImpl }),
+    ).resolves.toEqual(activeDiet);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/diets/diet-1',
+      expect.objectContaining({ cache: 'no-store' }),
+    );
   });
 
   it('loads patient diet history from the authenticated endpoint', async () => {

@@ -3,7 +3,7 @@ import { FiArrowDown, FiArrowLeft, FiArrowUp, FiPlus, FiTrash2 } from 'react-ico
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { createDietDraft, updateDietDraft } from '../services/dietService.js';
+import { createDiet, getDiet, updateDiet } from '../services/dietService.js';
 import './DietEditorPage.css';
 
 const MAX_MEALS = 20;
@@ -54,6 +54,38 @@ function emptyDiet() {
     target_carbohydrates: '',
     target_fats: '',
     meals: [newMeal()],
+  };
+}
+
+function toForm(diet) {
+  const toText = (value) => value === null || value === undefined ? '' : String(value);
+  return {
+    title: diet.title,
+    notes: diet.notes ?? '',
+    target_calories: toText(diet.target_calories),
+    target_protein: toText(diet.target_protein),
+    target_carbohydrates: toText(diet.target_carbohydrates),
+    target_fats: toText(diet.target_fats),
+    meals: diet.meals.map((meal) => ({
+      name: meal.name,
+      scheduled_time: meal.scheduled_time?.slice(0, 5) ?? '',
+      target_calories: toText(meal.target_calories),
+      notes: meal.notes ?? '',
+      food_groups: meal.food_groups.map((group) => ({
+        name: group.name,
+        options: group.food_options.map((option) => ({
+          label: option.label,
+          food_name: option.food_name,
+          quantity: toText(option.quantity),
+          unit: option.unit,
+          calories: toText(option.calories),
+          protein: toText(option.protein),
+          carbohydrates: toText(option.carbohydrates),
+          fats: toText(option.fats),
+          notes: option.notes ?? '',
+        })),
+      })),
+    })),
   };
 }
 
@@ -210,7 +242,7 @@ function NumberField({ id, label, value, onChange, integer = false, required = f
 }
 
 export default function DietEditorPage() {
-  const { patientId } = useParams();
+  const { patientId, dietId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -218,17 +250,52 @@ export default function DietEditorPage() {
   const accessToken = session?.access_token;
   const [form, setForm] = useState(emptyDiet);
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(emptyDiet()));
-  const [draft, setDraft] = useState(null);
+  const [currentDiet, setCurrentDiet] = useState(null);
   const [fieldErrors, setFieldErrors] = useState([]);
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadingDiet, setLoadingDiet] = useState(Boolean(dietId));
   const hasChanges = useMemo(
     () => JSON.stringify(form) !== savedSnapshot,
     [form, savedSnapshot],
   );
   const hasChangesRef = useRef(hasChanges);
   hasChangesRef.current = hasChanges;
+
+  useEffect(() => {
+    if (!dietId) {
+      setLoadingDiet(false);
+      return undefined;
+    }
+
+    let active = true;
+    setLoadingDiet(true);
+    setFormError('');
+    getDiet(dietId, { accessToken })
+      .then((loadedDiet) => {
+        if (!active) return;
+        const loadedForm = toForm(loadedDiet);
+        setForm(loadedForm);
+        setSavedSnapshot(JSON.stringify(loadedForm));
+        setCurrentDiet({
+          id: loadedDiet.id,
+          student_id: loadedDiet.student_id,
+          version: loadedDiet.version,
+          status: loadedDiet.status,
+        });
+      })
+      .catch((error) => {
+        if (active) setFormError(error.message);
+      })
+      .finally(() => {
+        if (active) setLoadingDiet(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [accessToken, dietId]);
 
   useEffect(() => {
     function beforeUnload(event) {
@@ -298,7 +365,7 @@ export default function DietEditorPage() {
       return;
     }
     hasChangesRef.current = false;
-    navigate('/admin');
+    navigate(`/admin/patients/${encodeURIComponent(patientId)}/diets`);
   }
 
   async function handleSubmit(event) {
@@ -312,16 +379,20 @@ export default function DietEditorPage() {
     setSaving(true);
     try {
       const payload = toPayload(form);
-      const saved = draft
-        ? await updateDietDraft(draft.id, payload, { accessToken })
-        : await createDietDraft(patientId, payload, { accessToken });
-      setDraft(saved);
+      const saved = currentDiet
+        ? await updateDiet(currentDiet.id, payload, { accessToken })
+        : await createDiet(patientId, payload, { accessToken });
+      setCurrentDiet(saved);
       setSavedSnapshot(JSON.stringify(form));
-      setSuccessMessage(
-        draft
-          ? 'Alterações do rascunho salvas.'
-          : `Rascunho v${saved.version} criado. Você pode continuar editando e salvar novas alterações.`,
-      );
+      if (!currentDiet) {
+        setSuccessMessage(`Dieta v${saved.version} criada e ativada.`);
+      } else if (currentDiet.status !== 'DRAFT' && saved.status === 'DRAFT') {
+        setSuccessMessage(
+          `Edição salva como versão ${saved.version}. Ative-a na página de Dietas quando quiser disponibilizá-la ao paciente.`,
+        );
+      } else {
+        setSuccessMessage(`Alterações da versão ${saved.version} salvas.`);
+      }
     } catch (error) {
       setFormError(error.message);
     } finally {
@@ -392,6 +463,27 @@ export default function DietEditorPage() {
     ));
   }
 
+  if (loadingDiet) {
+    return (
+      <div className="diet-editor__state" role="status">
+        <span className="loading-spinner" aria-hidden="true" />
+        Carregando dieta…
+      </div>
+    );
+  }
+
+  if (dietId && !currentDiet) {
+    return (
+      <section className="diet-editor" aria-labelledby="diet-editor-title">
+        <h1 id="diet-editor-title">Editar dieta</h1>
+        <p className="diet-editor__alert" role="alert">
+          Não foi possível carregar a dieta. {formError}
+        </p>
+        <Button type="button" onClick={leaveEditor}>Voltar às dietas</Button>
+      </section>
+    );
+  }
+
   return (
     <section className="diet-editor" aria-labelledby="diet-editor-title">
       <button className="diet-editor__back" type="button" onClick={leaveEditor}>
@@ -400,14 +492,18 @@ export default function DietEditorPage() {
       </button>
       <header className="diet-editor__heading">
         <div>
-          <span className="eyebrow">PLANO ALIMENTAR · RASCUNHO</span>
-          <h1 id="diet-editor-title">{draft ? 'Editar rascunho' : 'Nova dieta'}</h1>
+          <span className="eyebrow">PLANO ALIMENTAR</span>
+          <h1 id="diet-editor-title">{currentDiet ? 'Editar dieta' : 'Nova dieta'}</h1>
           <p>
             {patient?.full_name ? `Para ${patient.full_name}. ` : ''}
             As informações são inseridas por você; não há cálculos de recomendação.
           </p>
         </div>
-        {draft && <span className="diet-editor__version">Rascunho v{draft.version}</span>}
+        {currentDiet && (
+          <span className="diet-editor__version">
+            {currentDiet.status === 'ACTIVE' ? 'Ativa' : currentDiet.status === 'ARCHIVED' ? 'Arquivada' : 'Rascunho'} · v{currentDiet.version}
+          </span>
+        )}
       </header>
 
       <form className="diet-editor__form" onSubmit={handleSubmit} noValidate>
@@ -771,8 +867,8 @@ export default function DietEditorPage() {
           <Button type="button" variant="quiet" onClick={leaveEditor} disabled={saving}>
             Sair do editor
           </Button>
-          <Button type="submit" disabled={saving || (Boolean(draft) && !hasChanges)}>
-            {saving ? 'Salvando…' : draft ? 'Salvar alterações' : 'Criar rascunho'}
+          <Button type="submit" disabled={saving || (Boolean(currentDiet) && !hasChanges)}>
+            {saving ? 'Salvando…' : 'Salvar'}
           </Button>
         </div>
       </form>

@@ -120,7 +120,7 @@ this migration has been applied to or tested against a hosted Supabase project.
 
 ## Atomic diet operations
 
-The later migrations add two privileged PostgreSQL RPCs:
+The migrations add privileged PostgreSQL RPCs:
 
 - `20261110160000_add_atomic_draft_diet_rpc.sql` defines
   `public.save_draft_diet(uuid, uuid, jsonb)`. It creates or replaces the
@@ -130,11 +130,17 @@ The later migrations add two privileged PostgreSQL RPCs:
   `public.activate_draft_diet(uuid, uuid)`. It validates the student/draft
   relationship, locks the student's profile, archives the previous active
   version, and activates the selected draft in one transaction.
+- `20261110194500_add_save_diet_workflow.sql` defines
+  `public.save_diet(uuid, uuid, jsonb)`. Creating a diet activates it in the
+  same transaction and archives any previous active version. Editing a draft
+  updates it without activation; editing an active or archived version creates
+  a new draft version, leaving the source unchanged until the nutritionist
+  activates the new version manually.
 
-Both functions revoke execution from `PUBLIC`, `anon`, and `authenticated` and
-grant it only to `service_role`. The Netlify handlers first authenticate and
-authorize the nutritionist, validate input/ownership, then invoke the RPC.
-Never expose either RPC to browser callers or grant its execution to
+All three functions revoke execution from `PUBLIC`, `anon`, and `authenticated`
+and grant it only to `service_role`. The Netlify handlers first authenticate and
+authorize the nutritionist, validate input/ownership, then invoke the RPCs.
+Never expose these RPCs to browser callers or grant execution to
 `authenticated`.
 
 After applying migrations to a disposable local Supabase project, verify the
@@ -148,16 +154,21 @@ SELECT
     AS authenticated_can_save_draft,
   has_function_privilege('service_role', 'public.save_draft_diet(uuid, uuid, jsonb)', 'EXECUTE')
     AS service_role_can_save_draft,
+  has_function_privilege('authenticated', 'public.save_diet(uuid, uuid, jsonb)', 'EXECUTE')
+    AS authenticated_can_save_diet,
+  has_function_privilege('service_role', 'public.save_diet(uuid, uuid, jsonb)', 'EXECUTE')
+    AS service_role_can_save_diet,
   has_function_privilege('authenticated', 'public.activate_draft_diet(uuid, uuid)', 'EXECUTE')
     AS authenticated_can_activate,
   has_function_privilege('service_role', 'public.activate_draft_diet(uuid, uuid)', 'EXECUTE')
     AS service_role_can_activate;
 ```
 
-Expected results are `false`, `false`, `true`, `false`, and `true`. Then use
-the admin Function endpoints with disposable users to create/edit a nested
-draft and activate it over an existing active version. Read back the tree and
-confirm ordering and that exactly one diet is active. The local automated
+Expected results are `false`, `false`, `true`, `false`, `true`, `false`, and
+`true`. Then use the admin Function endpoints with disposable users to create
+an active diet, edit active and archived versions into drafts, manually activate
+a draft, read back the ordered tree, and confirm exactly one diet is active.
+The local automated
 Function tests use mocked Supabase clients; they do not execute these SQL
 functions or prove RLS behavior against a running database.
 

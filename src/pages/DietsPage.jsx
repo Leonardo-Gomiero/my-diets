@@ -123,7 +123,7 @@ export default function DietsPage() {
       {status === 'success' && diets.length === 0 && (
         <div className="diets-page__state diets-page__state--empty">
           <h2>Nenhuma dieta cadastrada</h2>
-          <p>Crie um rascunho para começar a montar as dietas deste paciente.</p>
+          <p>Crie uma dieta para começar o acompanhamento deste paciente.</p>
         </div>
       )}
 
@@ -142,6 +142,13 @@ export default function DietsPage() {
                   Versão {diet.version} <span aria-hidden="true">·</span> Criada em {formatDate(diet.created_at)}
                 </p>
               </div>
+              <Link
+                className="button button--quiet"
+                to={`/admin/patients/${encodeURIComponent(patientId)}/diets/${encodeURIComponent(diet.id)}/edit`}
+                aria-label={`Editar versão ${diet.version}`}
+              >
+                Editar
+              </Link>
               {diet.status !== 'ACTIVE' && (
                 <Button
                   type="button"
@@ -153,7 +160,7 @@ export default function DietsPage() {
                     ? 'Ativando…'
                     : diet.status === 'ARCHIVED'
                       ? 'Reativar versão'
-                      : 'Ativar rascunho'}
+                      : 'Ativar'}
                 </Button>
               )}
             </li>

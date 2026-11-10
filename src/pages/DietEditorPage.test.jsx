@@ -3,13 +3,14 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { createDietDraft, updateDietDraft } from '../services/dietService.js';
+import { createDiet, getDiet, updateDiet } from '../services/dietService.js';
 import DietEditorPage from './DietEditorPage.jsx';
 
 vi.mock('../context/AuthContext.jsx', () => ({ useAuth: vi.fn() }));
 vi.mock('../services/dietService.js', () => ({
-  createDietDraft: vi.fn(),
-  updateDietDraft: vi.fn(),
+  createDiet: vi.fn(),
+  getDiet: vi.fn(),
+  updateDiet: vi.fn(),
 }));
 
 const savedDraft = {
@@ -24,11 +25,58 @@ function CurrentPath() {
   return <p data-testid="current-path">{location.pathname}</p>;
 }
 
-function renderEditor() {
+const activeDiet = {
+  id: 'diet-existing',
+  student_id: 'patient-1',
+  title: 'Plano existente',
+  version: 4,
+  status: 'ACTIVE',
+  target_calories: 1800,
+  target_protein: null,
+  target_carbohydrates: null,
+  target_fats: null,
+  notes: 'Notas',
+  meals: [{
+    id: 'meal-1',
+    order_index: 0,
+    name: 'Café da manhã',
+    scheduled_time: '08:00:00',
+    target_calories: null,
+    notes: null,
+    food_groups: [{
+      id: 'group-1',
+      order_index: 0,
+      name: 'Proteínas',
+      food_options: [{
+        id: 'option-1',
+        order_index: 0,
+        label: 'Opção A',
+        food_name: 'Ovos',
+        quantity: 2,
+        unit: 'unidades',
+        calories: 140,
+        protein: 12,
+        carbohydrates: null,
+        fats: null,
+        notes: null,
+      }],
+    }],
+  }],
+};
+
+function renderEditor(path = '/admin/patients/patient-1/diet') {
   return render(
-    <MemoryRouter initialEntries={['/admin/patients/patient-1/diet']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/admin/patients/:patientId/diet" element={<DietEditorPage />} />
+        <Route
+          path="/admin/patients/:patientId/diets/:dietId/edit"
+          element={<DietEditorPage />}
+        />
+        <Route
+          path="/admin/patients/:patientId/diets"
+          element={<CurrentPath />}
+        />
         <Route path="/admin" element={<CurrentPath />} />
       </Routes>
     </MemoryRouter>,
@@ -61,8 +109,9 @@ function fillMinimumDiet() {
 
 beforeEach(() => {
   useAuth.mockReturnValue({ session: { access_token: 'admin-token' } });
-  createDietDraft.mockReset();
-  updateDietDraft.mockReset();
+  createDiet.mockReset();
+  getDiet.mockReset();
+  updateDiet.mockReset();
 });
 
 afterEach(() => {
@@ -73,7 +122,7 @@ afterEach(() => {
 describe('DietEditorPage', () => {
   it('validates required fields before making a request', () => {
     renderEditor();
-    fireEvent.click(screen.getByRole('button', { name: 'Criar rascunho' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(screen.getByRole('alert').textContent).toContain(
       'Informe um título com até 200 caracteres.',
@@ -81,24 +130,25 @@ describe('DietEditorPage', () => {
     expect(screen.getByRole('alert').textContent).toContain(
       'Informe uma quantidade não negativa para a opção 1.1.1.',
     );
-    expect(createDietDraft).not.toHaveBeenCalled();
+    expect(createDiet).not.toHaveBeenCalled();
   });
 
-  it('creates a nested draft and then updates it without leaving the editor', async () => {
-    createDietDraft.mockResolvedValue(savedDraft);
-    updateDietDraft.mockResolvedValue(savedDraft);
+  it('creates an active diet and saves subsequent edits without activating them', async () => {
+    const activeSavedDiet = { ...savedDraft, status: 'ACTIVE' };
+    createDiet.mockResolvedValue(activeSavedDiet);
+    updateDiet.mockResolvedValue(savedDraft);
     renderEditor();
     fillMinimumDiet();
     fireEvent.change(screen.getByLabelText('Calorias (kcal)'), {
       target: { value: '1800' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Criar rascunho' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(await screen.findByRole('status')).toHaveProperty(
       'textContent',
-      'Rascunho v1 criado. Você pode continuar editando e salvar novas alterações.',
+      'Dieta v1 criada e ativada.',
     );
-    expect(createDietDraft).toHaveBeenCalledWith(
+    expect(createDiet).toHaveBeenCalledWith(
       'patient-1',
       expect.objectContaining({
         title: 'Plano individual',
@@ -128,14 +178,46 @@ describe('DietEditorPage', () => {
     fireEvent.change(screen.getByLabelText('Título da dieta'), {
       target: { value: 'Plano individual atualizado' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
-    await waitFor(() => expect(updateDietDraft).toHaveBeenCalledWith(
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(updateDiet).toHaveBeenCalledWith(
       'diet-1',
       expect.objectContaining({ title: 'Plano individual atualizado' }),
       { accessToken: 'admin-token' },
     ));
     expect((await screen.findByRole('status')).textContent).toContain(
-      'Alterações do rascunho salvas.',
+      'Edição salva como versão 1. Ative-a na página de Dietas quando quiser disponibilizá-la ao paciente.',
+    );
+  });
+
+  it('loads an active existing diet and saves the edit as a draft version', async () => {
+    getDiet.mockResolvedValue(activeDiet);
+    updateDiet.mockResolvedValue({
+      id: 'diet-new',
+      student_id: 'patient-1',
+      version: 5,
+      status: 'DRAFT',
+    });
+    renderEditor('/admin/patients/patient-1/diets/diet-existing/edit');
+
+    expect(await screen.findByRole('heading', { name: 'Editar dieta' })).toBeTruthy();
+    expect(screen.getByLabelText('Título da dieta').value).toBe('Plano existente');
+    expect(screen.getByLabelText('Nome da refeição').value).toBe('Café da manhã');
+    expect(screen.getByLabelText('Alimento').value).toBe('Ovos');
+    expect(screen.getByText('Ativa · v4')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Título da dieta'), {
+      target: { value: 'Plano atualizado' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(await screen.findByRole('status')).toHaveProperty(
+      'textContent',
+      'Edição salva como versão 5. Ative-a na página de Dietas quando quiser disponibilizá-la ao paciente.',
+    );
+    expect(updateDiet).toHaveBeenCalledWith(
+      'diet-existing',
+      expect.objectContaining({ title: 'Plano atualizado' }),
+      { accessToken: 'admin-token' },
     );
   });
 
@@ -162,11 +244,11 @@ describe('DietEditorPage', () => {
   });
 
   it('shows API errors and warns before leaving with unsaved changes', async () => {
-    createDietDraft.mockRejectedValue(new Error('Não foi possível salvar.'));
+    createDiet.mockRejectedValue(new Error('Não foi possível salvar.'));
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderEditor();
     fillMinimumDiet();
-    fireEvent.click(screen.getByRole('button', { name: 'Criar rascunho' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Não foi possível salvar.',
     );
@@ -179,6 +261,7 @@ describe('DietEditorPage', () => {
 
     confirm.mockReturnValue(true);
     fireEvent.click(screen.getByRole('button', { name: 'Sair do editor' }));
-    expect((await screen.findByTestId('current-path')).textContent).toContain('/admin');
+    expect((await screen.findByTestId('current-path')).textContent)
+      .toBe('/admin/patients/patient-1/diets');
   });
 });

@@ -56,7 +56,7 @@ afterEach(() => {
 });
 
 describe('DietsPage', () => {
-  it('shows loading, status, version, and allows draft or archived diet activation', async () => {
+  it('shows diet status, edit actions, and activation for inactive versions', async () => {
     let finish;
     getDietHistory.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
     renderDiets();
@@ -68,6 +68,10 @@ describe('DietsPage', () => {
     expect(screen.getByRole('heading', { name: 'Dietas' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Plano novo' })).toBeTruthy();
     expect(screen.getByText('Arquivada')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Editar versão 1' }).getAttribute('href'))
+      .toBe('/admin/patients/patient-1/diets/diet-1/edit');
+    expect(screen.getByRole('link', { name: 'Editar versão 2' }).getAttribute('href'))
+      .toBe('/admin/patients/patient-1/diets/diet-2/edit');
     expect(screen.getByRole('button', { name: 'Ativar versão 2' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Reativar versão 3' })).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /Ativar|Reativar versão/ })).toHaveLength(2);

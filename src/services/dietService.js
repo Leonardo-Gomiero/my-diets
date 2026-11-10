@@ -1,22 +1,23 @@
 function apiErrorMessage(code, message) {
   const messages = {
-    DIET_NOT_DRAFT: 'Somente rascunhos podem ser editados ou ativados.',
+    DIET_NOT_DRAFT: 'Não foi possível editar esta dieta.',
     DIET_NOT_ACTIVATABLE: 'Somente rascunhos ou dietas arquivadas podem ser ativados.',
-    DIET_NOT_FOUND: 'O rascunho não foi encontrado.',
-    DIET_SAVE_UNAVAILABLE: 'Não foi possível salvar o rascunho. Tente novamente.',
+    DIET_NOT_FOUND: 'Dieta não encontrada.',
+    DIET_SAVE_UNAVAILABLE: 'Não foi possível salvar a dieta. Tente novamente.',
+    DIET_LOOKUP_UNAVAILABLE: 'A dieta está temporariamente indisponível.',
     DIET_HISTORY_UNAVAILABLE: 'As dietas estão temporariamente indisponíveis.',
     DIET_ACTIVATION_UNAVAILABLE: 'Não foi possível confirmar a ativação. Atualize a página de dietas antes de tentar novamente.',
     PATIENT_NOT_FOUND: 'Paciente não encontrado.',
     FORBIDDEN: 'Você não tem permissão para editar dietas.',
     INVALID_DIET: 'Confira os dados da dieta e tente novamente.',
     INVALID_PATIENT_ID: 'Paciente inválido.',
-    INVALID_DIET_ID: 'Rascunho inválido.',
+    INVALID_DIET_ID: 'Dieta inválida.',
     UNAUTHENTICATED: 'Sua sessão expirou. Entre novamente para continuar.',
   };
-  return messages[code] || message || 'Não foi possível salvar o rascunho.';
+  return messages[code] || message || 'Não foi possível salvar a dieta.';
 }
 
-async function saveDraft(path, method, payload, { accessToken, fetchImpl = fetch } = {}) {
+async function saveDiet(path, method, payload, { accessToken, fetchImpl = fetch } = {}) {
   let response;
   try {
     response = await fetchImpl(path, {
@@ -51,15 +52,15 @@ async function saveDraft(path, method, payload, { accessToken, fetchImpl = fetch
     typeof diet.id !== 'string' ||
     typeof diet.student_id !== 'string' ||
     !Number.isInteger(diet.version) ||
-    diet.status !== 'DRAFT'
+    !['DRAFT', 'ACTIVE'].includes(diet.status)
   ) {
     throw new Error('O serviço retornou uma resposta inválida.');
   }
   return diet;
 }
 
-export function createDietDraft(patientId, payload, options) {
-  return saveDraft(
+export function createDiet(patientId, payload, options) {
+  return saveDiet(
     `/api/patients/${encodeURIComponent(patientId)}/diets`,
     'POST',
     payload,
@@ -67,13 +68,48 @@ export function createDietDraft(patientId, payload, options) {
   );
 }
 
-export function updateDietDraft(dietId, payload, options) {
-  return saveDraft(
+export function updateDiet(dietId, payload, options) {
+  return saveDiet(
     `/api/diets/${encodeURIComponent(dietId)}`,
     'PUT',
     payload,
     options,
   );
+}
+
+export async function getDiet(dietId, { accessToken, fetchImpl = fetch } = {}) {
+  let response;
+  try {
+    response = await fetchImpl(`/api/diets/${encodeURIComponent(dietId)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    });
+  } catch {
+    throw new Error('Não foi possível conectar ao serviço. Tente novamente.');
+  }
+
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
+  if (!response.ok) {
+    throw new Error(apiErrorMessage(result?.error?.code, result?.error?.message));
+  }
+
+  const diet = result?.data?.diet;
+  if (
+    !diet ||
+    diet.id !== dietId ||
+    typeof diet.student_id !== 'string' ||
+    !Number.isInteger(diet.version) ||
+    !['DRAFT', 'ACTIVE', 'ARCHIVED'].includes(diet.status) ||
+    !Array.isArray(diet.meals)
+  ) {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
+  return diet;
 }
 
 export async function getDietHistory(patientId, { accessToken, fetchImpl = fetch } = {}) {

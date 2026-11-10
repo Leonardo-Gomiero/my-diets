@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   activateDietDraft,
   createPatientDiet,
+  getDietForEdit,
   getPatientDietHistory,
   updateDietDraft,
 } from './_shared/dietAdmin.js';
@@ -109,7 +110,10 @@ function ownershipQuery(data) {
   return query;
 }
 
-function setup({ data = { id: DIET_ID, student_id: PATIENT_ID, version: 3 }, error = null } = {}) {
+function setup({
+  data = { id: DIET_ID, student_id: PATIENT_ID, version: 3, status: 'DRAFT' },
+  error = null,
+} = {}) {
   const rpc = vi.fn().mockResolvedValue({ data, error });
   const patientQuery = ownershipQuery({ id: PATIENT_ID });
   const dietQuery = ownershipQuery({ student_id: PATIENT_ID });
@@ -122,8 +126,61 @@ function setup({ data = { id: DIET_ID, student_id: PATIENT_ID, version: 3 }, err
 }
 
 describe('draft diet endpoints', () => {
+  it('loads any existing diet for its assigned nutritionist', async () => {
+    const diet = {
+      id: DIET_ID,
+      student_id: PATIENT_ID,
+      title: 'Plano ativo',
+      version: 3,
+      status: 'ACTIVE',
+      meals: [],
+    };
+    const dietQuery = {
+      select: vi.fn(() => dietQuery),
+      eq: vi.fn(() => dietQuery),
+      maybeSingle: vi.fn().mockResolvedValue({ data: diet, error: null }),
+    };
+    const patientQuery = ownershipQuery({ id: PATIENT_ID });
+    const response = await getDietForEdit(
+      request(`/.netlify/functions/diet?id=${DIET_ID}`, undefined, 'GET'),
+      {
+        authenticate: vi.fn().mockResolvedValue(adminContext()),
+        createAdminClient: () => ({
+          from: (table) => table === 'diets' ? dietQuery : patientQuery,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ data: { diet } });
+  });
+
+  it('does not expose a diet belonging to another nutritionist', async () => {
+    const dietQuery = {
+      select: vi.fn(() => dietQuery),
+      eq: vi.fn(() => dietQuery),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: DIET_ID, student_id: PATIENT_ID, meals: [] },
+        error: null,
+      }),
+    };
+    const patientQuery = ownershipQuery(null);
+    const response = await getDietForEdit(
+      request(`/.netlify/functions/diet?id=${DIET_ID}`, undefined, 'GET'),
+      {
+        authenticate: vi.fn().mockResolvedValue(adminContext()),
+        createAdminClient: () => ({
+          from: (table) => table === 'diets' ? dietQuery : patientQuery,
+        }),
+      },
+    );
+    expect(response.status).toBe(404);
+  });
+
   it('creates the entire ordered diet tree through one atomic RPC', async () => {
-    const dependencies = setup();
+    const dependencies = setup({
+      data: { id: DIET_ID, student_id: PATIENT_ID, version: 3, status: 'ACTIVE' },
+    });
     const response = await createPatientDiet(
       request(`/.netlify/functions/patient-diets?id=${PATIENT_ID}`, dietPayload(), 'POST'),
       dependencies,
@@ -137,12 +194,12 @@ describe('draft diet endpoints', () => {
           id: DIET_ID,
           student_id: PATIENT_ID,
           version: 3,
-          status: 'DRAFT',
+          status: 'ACTIVE',
         },
       },
     });
     expect(dependencies.rpc).toHaveBeenCalledOnce();
-    expect(dependencies.rpc).toHaveBeenCalledWith('save_draft_diet', {
+    expect(dependencies.rpc).toHaveBeenCalledWith('save_diet', {
       p_student_id: PATIENT_ID,
       p_diet_id: null,
       p_payload: dietPayload(),
@@ -376,7 +433,7 @@ describe('draft diet endpoints', () => {
 
     expect(response.status).toBe(200);
     expect(dependencies.rpc).toHaveBeenCalledOnce();
-    expect(dependencies.rpc).toHaveBeenCalledWith('save_draft_diet', {
+    expect(dependencies.rpc).toHaveBeenCalledWith('save_diet', {
       p_student_id: null,
       p_diet_id: DIET_ID,
       p_payload: dietPayload(),
@@ -406,7 +463,7 @@ describe('draft diet endpoints', () => {
     expect(body).toEqual({
       error: {
         code: 'DIET_NOT_DRAFT',
-        message: 'Somente dietas em rascunho podem ser editadas.',
+        message: 'Não foi possível editar esta dieta.',
       },
     });
     expect(JSON.stringify(body)).not.toContain('internal database detail');

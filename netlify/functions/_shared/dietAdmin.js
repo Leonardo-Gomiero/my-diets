@@ -289,7 +289,7 @@ async function saveDraft(request, operation, dependencies) {
 
     let result;
     try {
-      result = await client.rpc('save_draft_diet', {
+      result = await client.rpc('save_diet', {
         p_student_id: studentId,
         p_diet_id: dietId,
         p_payload: payload,
@@ -310,7 +310,7 @@ async function saveDraft(request, operation, dependencies) {
         throw new HttpError(
           409,
           'DIET_NOT_DRAFT',
-          'Somente dietas em rascunho podem ser editadas.',
+          'Não foi possível editar esta dieta.',
         );
       }
       throw new HttpError(
@@ -325,7 +325,8 @@ async function saveDraft(request, operation, dependencies) {
       !isRecord(savedDiet) ||
       typeof savedDiet.id !== 'string' ||
       typeof savedDiet.student_id !== 'string' ||
-      !Number.isInteger(savedDiet.version)
+      !Number.isInteger(savedDiet.version) ||
+      !['DRAFT', 'ACTIVE'].includes(savedDiet.status)
     ) {
       throw new HttpError(
         503,
@@ -342,7 +343,103 @@ async function saveDraft(request, operation, dependencies) {
             id: savedDiet.id,
             student_id: savedDiet.student_id,
             version: savedDiet.version,
-            status: 'DRAFT',
+            status: savedDiet.status,
+          },
+        },
+      },
+      { 'Cache-Control': 'no-store, private' },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+function ordered(items) {
+  return [...(Array.isArray(items) ? items : [])]
+    .sort((left, right) => left.order_index - right.order_index)
+    .map((item) => {
+      if (Array.isArray(item.food_groups)) {
+        return { ...item, food_groups: ordered(item.food_groups) };
+      }
+      if (Array.isArray(item.food_options)) {
+        return { ...item, food_options: ordered(item.food_options) };
+      }
+      return item;
+    });
+}
+
+export async function getDietForEdit(
+  request,
+  {
+    authenticate = authenticateRequest,
+    createAdminClient = createServerSupabaseClient,
+  } = {},
+) {
+  if (request.method !== 'GET') {
+    return errorResponse(
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
+    );
+  }
+
+  try {
+    const context = requireAdmin(await authenticate(request));
+    const dietId = getId(request, 'id', 'INVALID_DIET_ID', 'dieta');
+    const client = createAdminClient();
+    let result;
+    try {
+      result = await client
+        .from('diets')
+        .select(`
+          id, student_id, title, version, status,
+          target_calories, target_protein, target_carbohydrates, target_fats, notes,
+          meals (
+            id, order_index, name, scheduled_time, target_calories, notes,
+            food_groups (
+              id, order_index, name,
+              food_options (
+                id, order_index, label, food_name, quantity, unit,
+                calories, protein, carbohydrates, fats, notes
+              )
+            )
+          )
+        `)
+        .eq('id', dietId)
+        .maybeSingle();
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_LOOKUP_UNAVAILABLE',
+        'A dieta está temporariamente indisponível.',
+      );
+    }
+
+    if (result.error) {
+      throw new HttpError(
+        503,
+        'DIET_LOOKUP_UNAVAILABLE',
+        'A dieta está temporariamente indisponível.',
+      );
+    }
+    if (!result.data) {
+      throw new HttpError(404, 'DIET_NOT_FOUND', 'Dieta não encontrada.');
+    }
+
+    await assertPatientOwnership(
+      client,
+      context.user.id,
+      result.data.student_id,
+      'DIET_LOOKUP_UNAVAILABLE',
+      'A dieta está temporariamente indisponível.',
+    );
+
+    const diet = result.data;
+    return jsonResponse(
+      200,
+      {
+        data: {
+          diet: {
+            ...diet,
+            meals: ordered(diet.meals),
           },
         },
       },

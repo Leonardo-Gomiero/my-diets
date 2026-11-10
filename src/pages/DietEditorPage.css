@@ -4,6 +4,14 @@
   max-width: 1040px;
 }
 
+.diet-editor__state {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 12px;
+  min-height: 150px;
+}
+
 .diet-editor__back {
   align-items: center;
   background: transparent;
