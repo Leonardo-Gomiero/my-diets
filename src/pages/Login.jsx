@@ -1,27 +1,32 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiArrowRight, FiLock, FiMail } from 'react-icons/fi';
 import Button from '../components/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Login.css';
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, error: authError } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event) {
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
+
+  async function handleSubmit(event) {
     event.preventDefault();
     setError('');
     setIsSubmitting(true);
 
     try {
-      signIn(email, password);
-      navigate(location.state?.from?.pathname || '/dashboard', {
+      const { profile } = await signIn(email, password);
+      navigate(profile.role === 'ADMIN' ? '/admin' : '/student', {
         replace: true,
       });
     } catch (loginError) {
@@ -84,9 +89,6 @@ export default function Login() {
         </Button>
       </form>
 
-      <p className="login__demo-note">
-        Demo sign-in: enter any valid email and a password.
-      </p>
     </div>
   );
 }

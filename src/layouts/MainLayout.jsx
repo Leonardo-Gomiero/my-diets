@@ -1,27 +1,41 @@
 import { FiActivity, FiLogOut } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import Button from '../components/Button.jsx';
 import './MainLayout.css';
 
 export default function MainLayout({ children }) {
-  const { session, signOut } = useAuth();
+  const { session, profile, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [logoutError, setLogoutError] = useState('');
+
+  async function handleSignOut() {
+    setLogoutError('');
+    try {
+      await signOut();
+    } catch (error) {
+      setLogoutError(error.message);
+    } finally {
+      navigate('/login', { replace: true });
+    }
+  }
 
   return (
     <div className="main-layout">
       <header className="topbar">
-        <Link className="brand" to="/dashboard">
+        <Link className="brand" to={profile.role === 'ADMIN' ? '/admin' : '/student'}>
           <span className="brand__icon">
             <FiActivity aria-hidden="true" />
           </span>
           <span>my diets</span>
         </Link>
         <div className="topbar__account">
-          <span className="topbar__email">{session.email}</span>
+          <span className="topbar__email">{session.user.email}</span>
           <Button
             className="topbar__logout"
             variant="quiet"
-            onClick={signOut}
+            onClick={handleSignOut}
             aria-label="Sign out"
           >
             <FiLogOut aria-hidden="true" />
@@ -29,6 +43,11 @@ export default function MainLayout({ children }) {
           </Button>
         </div>
       </header>
+      {logoutError && (
+        <p role="alert" className="login__error">
+          {logoutError}
+        </p>
+      )}
       <main className="main-content">{children}</main>
       <footer className="main-footer">Made for your everyday wellbeing.</footer>
     </div>

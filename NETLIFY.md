@@ -19,6 +19,12 @@ public; never put server secrets in this group.
 - `VITE_SUPABASE_ANON_KEY` — public Supabase anon/publishable key. Database access
   must be protected by RLS.
 
+The browser Supabase client uses only these two public variables. Supabase Auth
+manages the real session; the application does not create its own session or
+provide a demo sign-in. After sign-in, the frontend requests `GET /api/me` with
+the access token to obtain the application profile. Missing, invalid, or inactive
+profiles do not establish an application session.
+
 ### Netlify Functions variables
 
 Set these for server-side Functions; do not prefix server secrets with `VITE_`.
@@ -35,3 +41,7 @@ Supabase Auth, and load the matching application profile on the server. The
 service-role client is server-only and is never imported by frontend modules or
 configured as a `VITE_*` variable. Do not copy it into frontend environment
 settings.
+
+The `/admin` and `/student` React route guards control navigation and user
+experience only. Function authorization and database RLS remain the security
+boundary; do not rely on frontend role checks to protect data or operations.

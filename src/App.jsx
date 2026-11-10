@@ -8,10 +8,18 @@ import Login from './pages/Login.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 function LoginRoute() {
-  const { session } = useAuth();
+  const { status, session, profile } = useAuth();
 
   if (session) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={profile?.role === 'ADMIN' ? '/admin' : '/student'} replace />;
+  }
+
+  if (status === 'loading' || status === 'authenticating') {
+    return (
+      <AuthLayout>
+        <p role="status" aria-live="polite">Checking your session…</p>
+      </AuthLayout>
+    );
   }
 
   return (
@@ -26,9 +34,9 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<LoginRoute />} />
       <Route path="/login" element={<LoginRoute />} />
-      <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute allowedRole="ADMIN" />}>
         <Route
-          path="/dashboard"
+          path="/admin"
           element={
             <MainLayout>
               <Dashboard />
@@ -36,8 +44,31 @@ function AppRoutes() {
           }
         />
       </Route>
+      <Route element={<ProtectedRoute allowedRole="STUDENT" />}>
+        <Route
+          path="/student"
+          element={
+            <MainLayout>
+              <Dashboard />
+            </MainLayout>
+          }
+        />
+      </Route>
+      <Route element={<ProtectedRoute />}>
+        <Route
+          path="/dashboard"
+          element={<RoleHomeRedirect />}
+        />
+      </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
+  );
+}
+
+function RoleHomeRedirect() {
+  const { profile } = useAuth();
+  return (
+    <Navigate to={profile?.role === 'ADMIN' ? '/admin' : '/student'} replace />
   );
 }
 

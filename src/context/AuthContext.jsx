@@ -1,28 +1,121 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import {
-  getSession,
-  login as authenticate,
-  logout as clearSession,
+  restoreSession,
+  signIn as authenticate,
+  signOut as clearSession,
 } from '../services/authService.js';
+import { getSupabaseClient } from '../services/supabaseClient.js';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(getSession);
+  const [auth, setAuth] = useState({
+    status: 'loading',
+    session: null,
+    profile: null,
+    error: '',
+  });
 
-  function signIn(email, password) {
-    const nextSession = authenticate(email, password);
-    setSession(nextSession);
-    return nextSession;
+  useEffect(() => {
+    let active = true;
+    let subscription;
+
+    async function initialize() {
+      try {
+        const restored = await restoreSession();
+        if (active) {
+          setAuth({
+            status: restored ? 'authenticated' : 'unauthenticated',
+            session: restored?.session ?? null,
+            profile: restored?.profile ?? null,
+            error: '',
+          });
+        }
+      } catch (error) {
+        if (active) {
+          setAuth({
+            status: 'unauthenticated',
+            session: null,
+            profile: null,
+            error: error.message,
+          });
+        }
+      }
+    }
+
+    try {
+      const { data } = getSupabaseClient().auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT' && active) {
+          setAuth({
+            status: 'unauthenticated',
+            session: null,
+            profile: null,
+            error: '',
+          });
+        }
+      });
+      subscription = data.subscription;
+      initialize();
+    } catch (error) {
+      setAuth({
+        status: 'unauthenticated',
+        session: null,
+        profile: null,
+        error: error.message,
+      });
+    }
+
+    return () => {
+      active = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  async function signIn(email, password) {
+    setAuth((current) => ({ ...current, status: 'authenticating', error: '' }));
+
+    try {
+      const result = await authenticate(email, password);
+      setAuth({
+        status: 'authenticated',
+        session: result.session,
+        profile: result.profile,
+        error: '',
+      });
+      return result;
+    } catch (error) {
+      setAuth({
+        status: 'unauthenticated',
+        session: null,
+        profile: null,
+        error: error.message,
+      });
+      throw error;
+    }
   }
 
-  function signOut() {
-    clearSession();
-    setSession(null);
+  async function signOut() {
+    let logoutError;
+    try {
+      await clearSession();
+    } catch (error) {
+      logoutError = error;
+    } finally {
+      setAuth({
+        status: 'unauthenticated',
+        session: null,
+        profile: null,
+        error: logoutError?.message ?? '',
+      });
+    }
+
+    if (logoutError) {
+      throw logoutError;
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ session, signIn, signOut }}>
+    <AuthContext.Provider value={{ ...auth, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
