@@ -24,6 +24,14 @@ public; never put server secrets in this group.
 Set these for server-side Functions; do not prefix server secrets with `VITE_`.
 
 - `SUPABASE_URL` — Supabase project URL.
-- `SUPABASE_ANON_KEY` — public anon/publishable key, if required by a Function.
+- `SUPABASE_ANON_KEY` — public anon/publishable key used to verify bearer tokens.
 - `SUPABASE_SERVICE_ROLE_KEY` — secret privileged key; use only in server-side
   Functions and never expose it to frontend code or browser assets.
+
+Shared authentication and authorization helpers live under
+`netlify/functions/_shared/` and run in the Node.js 20 Functions runtime. They
+read server configuration only from `process.env`, verify access tokens through
+Supabase Auth, and load the matching application profile on the server. The
+service-role client is server-only and is never imported by frontend modules or
+configured as a `VITE_*` variable. Do not copy it into frontend environment
+settings.
