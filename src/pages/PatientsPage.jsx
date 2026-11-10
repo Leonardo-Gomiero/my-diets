@@ -1,5 +1,12 @@
-import { useEffect, useState } from 'react';
-import { FiArrowLeft, FiCopy, FiPlus, FiSearch, FiUsers } from 'react-icons/fi';
+import { useEffect, useRef, useState } from 'react';
+import {
+  FiArrowLeft,
+  FiCopy,
+  FiPlus,
+  FiSearch,
+  FiSettings,
+  FiUsers,
+} from 'react-icons/fi';
 import Button from '../components/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
@@ -358,6 +365,31 @@ export default function PatientsPage() {
   const [detailError, setDetailError] = useState('');
   const [statusError, setStatusError] = useState('');
   const [changingStatusId, setChangingStatusId] = useState('');
+  const [openPatientMenuId, setOpenPatientMenuId] = useState('');
+  const patientMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!openPatientMenuId) return undefined;
+
+    function closeOnOutsideClick(event) {
+      if (!patientMenuRef.current?.contains(event.target)) {
+        setOpenPatientMenuId('');
+      }
+    }
+
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') {
+        setOpenPatientMenuId('');
+      }
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [openPatientMenuId]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setSearch(searchInput.trim()), 250);
@@ -615,7 +647,9 @@ export default function PatientsPage() {
       )}
 
       {listStatus === 'success' && patients.length > 0 && (
-        <div className="patients-table-wrap">
+        <div
+          className={`patients-table-wrap${openPatientMenuId ? ' patients-table-wrap--menu-open' : ''}`}
+        >
           <table className="patients-table">
             <thead>
               <tr>
@@ -629,7 +663,75 @@ export default function PatientsPage() {
             <tbody>
               {patients.map((patient) => (
                 <tr key={patient.id}>
-                  <th scope="row" data-label="Nome">{patient.full_name}</th>
+                  <th scope="row" data-label="Nome">
+                    <div className="patient-name">
+                      <span>{patient.full_name}</span>
+                      <div
+                        className="patient-menu"
+                        ref={openPatientMenuId === patient.id ? patientMenuRef : null}
+                      >
+                        <Button
+                          type="button"
+                          variant="quiet"
+                          className="patient-menu__toggle"
+                          aria-label={`Opções de ${patient.full_name}`}
+                          aria-expanded={openPatientMenuId === patient.id}
+                          aria-controls={openPatientMenuId === patient.id
+                            ? `patient-menu-${patient.id}`
+                            : undefined}
+                          onClick={() => setOpenPatientMenuId((current) =>
+                            current === patient.id ? '' : patient.id)}
+                        >
+                          <FiSettings aria-hidden="true" />
+                        </Button>
+                        {openPatientMenuId === patient.id && (
+                          <div
+                            className="patient-menu__popover"
+                            id={`patient-menu-${patient.id}`}
+                            role="group"
+                            aria-label={`Opções de ${patient.full_name}`}
+                          >
+                            <Button
+                              type="button"
+                              variant="quiet"
+                              onClick={() => {
+                                setOpenPatientMenuId('');
+                                openPatient(patient);
+                              }}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="quiet"
+                              onClick={() => {
+                                setOpenPatientMenuId('');
+                                handleStatusChange(patient);
+                              }}
+                              disabled={changingStatusId === patient.id}
+                            >
+                              {changingStatusId === patient.id
+                                ? 'Atualizando…'
+                                : patient.is_active ? 'Desativar' : 'Ativar'}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="quiet"
+                              onClick={() => {
+                                setOpenPatientMenuId('');
+                                handlePasswordReset(patient);
+                              }}
+                              disabled={changingStatusId === patient.id || !patient.is_active}
+                            >
+                              {changingStatusId === patient.id
+                                ? 'Aguarde…'
+                                : 'Redefinir senha'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </th>
                   <td data-label="E-mail">
                     {patient.email ? (
                       <a href={`mailto:${patient.email}`}>{patient.email}</a>
@@ -662,38 +764,6 @@ export default function PatientsPage() {
                     >
                       Dietas
                     </a>
-                    <Button
-                      type="button"
-                      variant="quiet"
-                      onClick={() => openPatient(patient)}
-                      aria-label={`Editar ${patient.full_name}`}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="quiet"
-                      onClick={() => handleStatusChange(patient)}
-                      disabled={changingStatusId === patient.id}
-                      aria-label={`${patient.is_active ? 'Desativar' : 'Ativar'} ${patient.full_name}`}
-                    >
-                      {changingStatusId === patient.id
-                        ? 'Atualizando…'
-                        : patient.is_active
-                          ? 'Desativar'
-                          : 'Ativar'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="quiet"
-                      onClick={() => handlePasswordReset(patient)}
-                      disabled={changingStatusId === patient.id || !patient.is_active}
-                      aria-label={`Redefinir senha de ${patient.full_name}`}
-                    >
-                      {changingStatusId === patient.id
-                        ? 'Aguarde…'
-                        : 'Redefinir senha'}
-                    </Button>
                   </td>
                 </tr>
               ))}

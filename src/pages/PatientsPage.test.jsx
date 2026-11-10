@@ -33,6 +33,10 @@ const samplePatient = {
   is_active: true,
 };
 
+async function openPatientOptions(name) {
+  fireEvent.click(await screen.findByRole('button', { name: `Opções de ${name}` }));
+}
+
 beforeEach(() => {
   getPatients.mockReset();
   getPatient.mockReset();
@@ -108,6 +112,27 @@ describe('PatientsPage', () => {
     expect(activeLink.getAttribute('href')).toBe('/admin/patients/patient-1/diets');
     expect(screen.getByRole('link', { name: 'Dietas de Bia Inativa' })
       .getAttribute('href')).toBe('/admin/patients/patient-2/diets');
+    expect(screen.getByRole('button', { name: 'Opções de Ana Exemplo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Opções de Bia Inativa' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Editar Ana Exemplo' })).toBeNull();
+  });
+
+  it('opens patient actions from the gear button and closes the menu with Escape', async () => {
+    getPatients.mockResolvedValue([samplePatient]);
+    render(<PatientsPage />);
+    const gear = await screen.findByRole('button', { name: 'Opções de Ana Exemplo' });
+
+    fireEvent.click(gear);
+    expect(gear.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('group', { name: 'Opções de Ana Exemplo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Editar' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Desativar' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Redefinir senha' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Dietas de Ana Exemplo' })).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(gear.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('group', { name: 'Opções de Ana Exemplo' })).toBeNull();
   });
 
   it('provides email and WhatsApp links for patient contact', async () => {
@@ -220,7 +245,8 @@ describe('PatientsPage', () => {
     getPatient.mockResolvedValue(samplePatient);
     updatePatient.mockRejectedValue(new Error('Este e-mail já está cadastrado.'));
     render(<PatientsPage />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Editar Ana Exemplo' }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
 
     expect(await screen.findByRole('heading', { name: 'Editar cadastro' })).toBeTruthy();
     expect(getPatient).toHaveBeenCalledWith(
@@ -257,7 +283,8 @@ describe('PatientsPage', () => {
       .mockResolvedValueOnce({ id: samplePatient.id, is_active: true });
 
     render(<PatientsPage />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Desativar Ana Exemplo' }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Desativar' }));
 
     expect(confirm).toHaveBeenCalledWith(
       expect.stringContaining('perfil e o histórico de dietas serão preservados'),
@@ -271,7 +298,8 @@ describe('PatientsPage', () => {
     );
     expect(await screen.findByText('Inativo')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ativar Ana Exemplo' }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Ativar' }));
     await waitFor(() =>
       expect(updatePatientStatus).toHaveBeenLastCalledWith(
         samplePatient.id,
@@ -287,7 +315,8 @@ describe('PatientsPage', () => {
     getPatient.mockRejectedValue(new Error('Paciente não encontrado.'));
     render(<PatientsPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Editar Ana Exemplo' }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Paciente não encontrado.',
     );
@@ -305,7 +334,8 @@ describe('PatientsPage', () => {
     updatePatient.mockResolvedValue(updatedPatient);
     render(<PatientsPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Editar Ana Exemplo' }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
     await screen.findByRole('heading', { name: 'Editar cadastro' });
     fireEvent.change(screen.getByLabelText('Nome completo'), {
       target: { value: updatedPatient.full_name },
@@ -329,7 +359,8 @@ describe('PatientsPage', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<PatientsPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Desativar Ana Exemplo' }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Desativar' }));
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Não foi possível salvar.',
     );
@@ -350,9 +381,8 @@ describe('PatientsPage', () => {
     getPatients.mockResolvedValue([samplePatient]);
     render(<PatientsPage />);
 
-    fireEvent.click(await screen.findByRole('button', {
-      name: 'Redefinir senha de Ana Exemplo',
-    }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Redefinir senha' }));
 
     expect(confirm).toHaveBeenCalledWith(
       expect.stringContaining('A senha atual deixará de funcionar'),
@@ -382,9 +412,8 @@ describe('PatientsPage', () => {
     getPatients.mockResolvedValue([samplePatient]);
     render(<PatientsPage />);
 
-    fireEvent.click(await screen.findByRole('button', {
-      name: 'Redefinir senha de Ana Exemplo',
-    }));
+    await openPatientOptions('Ana Exemplo');
+    fireEvent.click(screen.getByRole('button', { name: 'Redefinir senha' }));
 
     expect(resetPatientPassword).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeTruthy();

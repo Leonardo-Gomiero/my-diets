@@ -97,6 +97,10 @@
   overflow: hidden;
 }
 
+.patients-table-wrap--menu-open {
+  overflow: visible;
+}
+
 .patients-table {
   border-collapse: collapse;
   text-align: left;
@@ -122,6 +126,69 @@
   color: var(--color-ink);
   font-size: 13px;
   font-weight: 650;
+}
+
+.patient-name {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.patient-name > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.patient-menu {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.patient-menu__toggle.button {
+  align-items: center;
+  color: var(--color-text-muted);
+  height: 36px;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0;
+  width: 36px;
+}
+
+.patient-menu__toggle:hover:not(:disabled),
+.patient-menu__toggle[aria-expanded='true'] {
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+}
+
+.patient-menu__popover {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgb(38 51 42 / 14%);
+  display: grid;
+  gap: 2px;
+  min-width: 184px;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+}
+
+.patient-menu__popover .button {
+  border-radius: 7px;
+  font-size: 13px;
+  justify-content: flex-start;
+  min-height: 40px;
+  padding: 0 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.patient-menu__popover .button:hover:not(:disabled) {
+  transform: none;
 }
 
 .patients-table td {
@@ -557,8 +624,11 @@
 
   .patients-table tbody th {
     font-size: 14px;
-    overflow-wrap: anywhere;
     text-align: left;
+  }
+
+  .patients-table tbody th .patient-name {
+    width: 100%;
   }
 
   .patients-table td::before {
