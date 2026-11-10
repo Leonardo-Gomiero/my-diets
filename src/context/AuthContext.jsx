@@ -114,21 +114,21 @@ export function AuthProvider({ children }) {
     }
 
     const result = await updateRequiredPassword(auth.session, password);
-    if (!result.profile || result.mustChangePassword) {
+    if (!result.session || !result.profile || result.mustChangePassword) {
       throw new Error('Password setup is not confirmed yet. Please try again.');
     }
 
-    return result.profile;
+    return result;
   }
 
-  function finishPasswordChange(profile) {
-    if (!auth.session || !auth.mustChangePassword || !profile) {
+  function finishPasswordChange({ session, profile }) {
+    if (!auth.session || !auth.mustChangePassword || !session || !profile) {
       throw new Error('Password setup is not confirmed yet. Please try again.');
     }
 
     setAuth({
       status: 'authenticated',
-      session: auth.session,
+      session,
       profile,
       mustChangePassword: false,
       error: '',

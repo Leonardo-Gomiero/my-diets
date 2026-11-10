@@ -137,10 +137,24 @@ export async function restoreSession(
 export async function changeRequiredPassword(
   session,
   password,
-  { fetchImpl = fetch } = {},
+  { client = getSupabaseClient(), fetchImpl = fetch } = {},
 ) {
-  if (!session?.access_token) {
+  if (!session?.access_token || !session.user?.email) {
     throw new Error('Your session is no longer valid. Please sign in again.');
+  }
+
+  async function recoverUpdatedPassword() {
+    const { data, error } = await client.auth.signInWithPassword({
+      email: session.user.email,
+      password,
+    });
+
+    if (error || !data?.session) {
+      return null;
+    }
+
+    const applicationState = await getApplicationProfile(data.session, { fetchImpl });
+    return { ...applicationState, session: data.session };
   }
 
   let response;
@@ -154,9 +168,9 @@ export async function changeRequiredPassword(
       body: JSON.stringify({ password }),
     });
   } catch {
-    const currentState = await getApplicationProfile(session, { fetchImpl });
-    if (!currentState.mustChangePassword) {
-      return currentState;
+    const updatedState = await recoverUpdatedPassword();
+    if (updatedState && !updatedState.mustChangePassword && updatedState.profile) {
+      return updatedState;
     }
     throw new Error('Unable to complete password setup. Submit again to retry safely.');
   }
@@ -169,30 +183,36 @@ export async function changeRequiredPassword(
       errorBody = null;
     }
 
-    const currentState = await getApplicationProfile(session, { fetchImpl });
-    if (!currentState.mustChangePassword) {
-      return currentState;
-    }
-
     if (errorBody?.error?.code === 'PASSWORD_PROFILE_UPDATE_PENDING') {
-      throw new Error(
-        'Your password was changed, but account setup is still pending. Submit a new password to safely retry.',
-      );
+      const updatedState = await recoverUpdatedPassword();
+      if (updatedState?.mustChangePassword) {
+        throw new Error(
+          'Your password was changed, but account setup is still pending. Submit a new password to safely retry.',
+        );
+      }
+      if (updatedState?.profile) {
+        return updatedState;
+      }
     }
 
     if (errorBody?.error?.code === 'INVALID_PASSWORD') {
       throw new Error(errorBody.error.message);
     }
 
+    const updatedState = await recoverUpdatedPassword();
+    if (updatedState && !updatedState.mustChangePassword && updatedState.profile) {
+      return updatedState;
+    }
+
     throw new Error('Unable to complete password setup. Submit again to retry safely.');
   }
 
-  const currentState = await getApplicationProfile(session, { fetchImpl });
-  if (currentState.mustChangePassword || !currentState.profile) {
+  const updatedState = await recoverUpdatedPassword();
+  if (!updatedState || updatedState.mustChangePassword || !updatedState.profile) {
     throw new Error('Password setup is not confirmed yet. Please try again.');
   }
 
-  return currentState;
+  return updatedState;
 }
 
 export async function signOut({ client = getSupabaseClient() } = {}) {

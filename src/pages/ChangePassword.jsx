@@ -38,13 +38,13 @@ export default function ChangePassword() {
 
     setIsSubmitting(true);
     try {
-      const profile = await completePasswordChange(password);
+      const result = await completePasswordChange(password);
       setPassword('');
       setConfirmation('');
       setSuccess('Senha atualizada. Seu acesso foi confirmado.');
       window.setTimeout(() => {
-        finishPasswordChange(profile);
-        navigate(profile.role === 'ADMIN' ? '/admin' : '/student', {
+        finishPasswordChange(result);
+        navigate(result.profile.role === 'ADMIN' ? '/admin' : '/student', {
           replace: true,
         });
       }, 900);

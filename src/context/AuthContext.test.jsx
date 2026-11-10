@@ -48,8 +48,8 @@ function PasswordChangeConsumer() {
 
   async function completeChange() {
     try {
-      const updatedProfile = await completePasswordChange('new-test-password');
-      finishPasswordChange(updatedProfile);
+      const result = await completePasswordChange('new-test-password');
+      finishPasswordChange(result);
     } catch (error) {
       document.querySelector('[data-error]').textContent = error.message;
     }
@@ -75,6 +75,7 @@ describe('AuthContext required password change', () => {
       mustChangePassword: true,
     });
     changeRequiredPassword.mockResolvedValue({
+      session,
       profile,
       mustChangePassword: false,
     });

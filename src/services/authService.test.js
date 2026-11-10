@@ -163,6 +163,13 @@ describe('Supabase Auth integration', () => {
   });
 
   it('confirms password completion by reloading the profile after the endpoint', async () => {
+    const refreshedSession = {
+      access_token: 'refreshed-access-token',
+      user: session.user,
+    };
+    const client = fakeClient({
+      signInResult: { data: { session: refreshedSession }, error: null },
+    });
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce({
@@ -179,8 +186,16 @@ describe('Supabase Auth integration', () => {
       });
 
     await expect(
-      changeRequiredPassword(session, 'a-long-test-password', { fetchImpl }),
-    ).resolves.toEqual({ profile, mustChangePassword: false });
+      changeRequiredPassword(session, 'a-long-test-password', { client, fetchImpl }),
+    ).resolves.toEqual({
+      profile,
+      mustChangePassword: false,
+      session: refreshedSession,
+    });
+    expect(client.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: session.user.email,
+      password: 'a-long-test-password',
+    });
     expect(fetchImpl).toHaveBeenNthCalledWith(
       1,
       '/api/me/password',
@@ -190,12 +205,18 @@ describe('Supabase Auth integration', () => {
       2,
       '/api/me',
       expect.objectContaining({
-        headers: { Authorization: 'Bearer test-access-token' },
+        headers: expect.objectContaining({
+          Authorization: expect.any(String),
+        }),
       }),
+    );
+    expect(fetchImpl.mock.calls[1][1].headers.Authorization).toContain(
+      refreshedSession.access_token,
     );
   });
 
   it('keeps forced access when the password changed but profile clearing is pending', async () => {
+    const client = fakeClient();
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce({
@@ -212,7 +233,7 @@ describe('Supabase Auth integration', () => {
       });
 
     await expect(
-      changeRequiredPassword(session, 'a-long-test-password', { fetchImpl }),
+      changeRequiredPassword(session, 'a-long-test-password', { client, fetchImpl }),
     ).rejects.toThrow('password was changed, but account setup is still pending');
   });
 
