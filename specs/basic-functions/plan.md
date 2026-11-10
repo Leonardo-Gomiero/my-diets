@@ -26,8 +26,8 @@ netlify/
     ├── students.mjs
     ├── student.mjs
     ├── student-credentials.mjs
-    ├── diets.mjs
-    ├── diet.mjs
+    ├── patient-diets.js
+    ├── diet.js
     └── diet-activate.mjs
 src/
 ├── assets/
@@ -167,6 +167,8 @@ All function routes are under `/.netlify/functions/` or are mapped to `/api/*` i
 | `POST /api/diets/:id/archive` | Admin | Archive a draft |
 
 For each request, derive identity from the verified Supabase token. Never trust a client-supplied role, student ID, or ownership claim. The student active-diet endpoint must derive the student ID from the token/profile.
+
+Draft creation and updates validate the complete nested payload in the Function and persist the diet tree through one PostgreSQL RPC transaction. Array order determines meal, group, and option ordering. Limits are 20 meals per diet, 20 groups per meal, 10 options per group, and 200 options per diet; every meal and group must contain at least one child. The RPC is executable only by `service_role`; the Function requires an active `ADMIN` before invoking it. Updates lock the diet row and reject any status other than `DRAFT`, so an active diet cannot be overwritten by a draft edit.
 
 ## 7. Frontend Architecture
 

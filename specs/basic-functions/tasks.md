@@ -36,7 +36,7 @@
 
 ## Phase 5: Diet Authoring and Student View
 
-- [ ] **BE-09**: Implement draft diet creation/update and nested meal, food-group, and food-option persistence.
+- [x] **BE-09**: Implement draft diet creation/update and nested meal, food-group, and food-option persistence atomically.
 - [ ] **BE-10**: Implement diet history and atomic activation/archive behavior, enforcing no more than one active diet per student.
 - [ ] **BE-11**: Implement the active-diet endpoint scoped to the authenticated student and the complete read path for admin preview/history.
 - [ ] **FE-10**: Build the draft diet editor for title, notes, targets, meals, schedule, food groups, options, quantity, unit, and optional nutrition values.

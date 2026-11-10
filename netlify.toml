@@ -10,6 +10,16 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/api/patients/:id/diets"
+  to = "/.netlify/functions/patient-diets?id=:id"
+  status = 200
+
+[[redirects]]
+  from = "/api/diets/:id"
+  to = "/.netlify/functions/diet?id=:id"
+  status = 200
+
+[[redirects]]
   from = "/api/patients/:id/temporary-password"
   to = "/.netlify/functions/patient-password?id=:id"
   status = 200
