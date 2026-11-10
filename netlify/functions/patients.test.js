@@ -31,10 +31,19 @@ function fakeAdminClient({
     eq: vi.fn().mockResolvedValue({ error: cleanupError }),
   });
   const detailsInsert = vi.fn().mockResolvedValue({ error: detailsInsertError });
+  const profileQuery = {
+    select: vi.fn(() => profileQuery),
+    eq: vi.fn(() => profileQuery),
+    order: vi.fn().mockResolvedValue({ data: [], error: null }),
+  };
 
   const client = {
     auth: {
       admin: {
+        listUsers: vi.fn().mockResolvedValue({
+          data: { users: [] },
+          error: null,
+        }),
         createUser: vi.fn().mockResolvedValue({
           data: { user: { id: 'created-patient-id' } },
           error: null,
@@ -44,7 +53,11 @@ function fakeAdminClient({
     },
     from: vi.fn((table) => {
       if (table === 'profiles') {
-        return { insert: profileInsert, delete: profileDelete };
+        return {
+          insert: profileInsert,
+          delete: profileDelete,
+          ...profileQuery,
+        };
       }
       if (table === 'student_details') {
         return { insert: detailsInsert };
@@ -196,7 +209,7 @@ describe('POST /api/patients', () => {
     expect(body).not.toContain('private');
   });
 
-  it('does not log the temporary password and has no read endpoint for it', async () => {
+  it('does not log or return the temporary password from a later list request', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const info = vi.spyOn(console, 'info').mockImplementation(() => {});
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -210,13 +223,15 @@ describe('POST /api/patients', () => {
     });
     const profileReadsBeforeGet = client.from.mock.calls.length;
     const readResponse = await createPatient(request(undefined, 'GET'), {
-      authenticate: vi.fn(),
-      createAdminClient: vi.fn(),
+      authenticate: vi.fn().mockResolvedValue(adminContext()),
+      createAdminClient: () => client,
     });
 
     expect(creationResponse.status).toBe(201);
-    expect(readResponse.status).toBe(405);
-    expect(client.from).toHaveBeenCalledTimes(profileReadsBeforeGet);
+    expect(readResponse.status).toBe(200);
+    expect(await readResponse.text()).not.toContain('one-time-test-password');
+    expect(client.from).toHaveBeenCalledTimes(profileReadsBeforeGet + 1);
+    expect(client.from).toHaveBeenLastCalledWith('profiles');
     expect(log).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();

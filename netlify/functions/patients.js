@@ -11,13 +11,142 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EMAIL_LENGTH = 254;
 const MAX_NAME_LENGTH = 200;
 const MAX_PHONE_LENGTH = 32;
+const MAX_SEARCH_LENGTH = 100;
+const AUTH_USERS_PAGE_SIZE = 1000;
+
+export async function listPatients(
+  request,
+  {
+    authenticate = authenticateRequest,
+    createAdminClient = createServerSupabaseClient,
+  } = {},
+) {
+  if (request.method !== 'GET') {
+    return errorResponse(
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
+    );
+  }
+
+  try {
+    const context = await authenticate(request);
+    requireAdmin(context);
+
+    const search = new URL(request.url).searchParams.get('search')?.trim() ?? '';
+    if (search.length > MAX_SEARCH_LENGTH) {
+      throw new HttpError(
+        400,
+        'INVALID_SEARCH',
+        `A busca deve ter no máximo ${MAX_SEARCH_LENGTH} caracteres.`,
+      );
+    }
+
+    const client = createAdminClient();
+    let profileResult;
+    try {
+      profileResult = await client
+        .from('profiles')
+        .select('id, full_name, is_active, created_at, student_details(phone)')
+        .eq('role', 'STUDENT')
+        .order('full_name', { ascending: true });
+    } catch {
+      throw new HttpError(
+        503,
+        'PATIENT_LIST_UNAVAILABLE',
+        'A lista de pacientes está temporariamente indisponível.',
+      );
+    }
+
+    if (profileResult.error || !Array.isArray(profileResult.data)) {
+      throw new HttpError(
+        503,
+        'PATIENT_LIST_UNAVAILABLE',
+        'A lista de pacientes está temporariamente indisponível.',
+      );
+    }
+
+    const profiles = profileResult.data;
+    const userIds = new Set(profiles.map((profile) => profile.id));
+    const usersById = new Map();
+    let page = 1;
+
+    while (userIds.size > usersById.size) {
+      let usersResult;
+      try {
+        usersResult = await client.auth.admin.listUsers({
+          page,
+          perPage: AUTH_USERS_PAGE_SIZE,
+        });
+      } catch {
+        throw new HttpError(
+          503,
+          'PATIENT_LIST_UNAVAILABLE',
+          'A lista de pacientes está temporariamente indisponível.',
+        );
+      }
+
+      const users = usersResult.data?.users;
+      if (usersResult.error || !Array.isArray(users)) {
+        throw new HttpError(
+          503,
+          'PATIENT_LIST_UNAVAILABLE',
+          'A lista de pacientes está temporariamente indisponível.',
+        );
+      }
+
+      for (const user of users) {
+        if (userIds.has(user.id)) {
+          usersById.set(user.id, user);
+        }
+      }
+
+      if (users.length < AUTH_USERS_PAGE_SIZE) {
+        break;
+      }
+      page += 1;
+    }
+
+    const normalizedSearch = search.toLocaleLowerCase('pt-BR');
+    const patients = profiles
+      .map((profile) => {
+        const details = Array.isArray(profile.student_details)
+          ? profile.student_details[0]
+          : profile.student_details;
+
+        return {
+          id: profile.id,
+          full_name: profile.full_name,
+          email: usersById.get(profile.id)?.email ?? '',
+          phone: details?.phone ?? null,
+          is_active: profile.is_active,
+          created_at: profile.created_at,
+        };
+      })
+      .filter((patient) =>
+        normalizedSearch
+          ? [
+              patient.full_name,
+              patient.email,
+              patient.phone ?? '',
+            ].some((value) =>
+              value.toLocaleLowerCase('pt-BR').includes(normalizedSearch),
+            )
+          : true,
+      );
+
+    return jsonResponse(200, { data: { patients } }, {
+      'Cache-Control': 'no-store, private',
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
 
 async function readPatientInput(request) {
   let body;
   try {
     body = await request.json();
   } catch {
-    throw new HttpError(400, 'INVALID_REQUEST', 'A valid JSON body is required.');
+    throw new HttpError(400, 'INVALID_REQUEST', 'Envie uma solicitação JSON válida.');
   }
 
   const fullName = typeof body?.full_name === 'string' ? body.full_name.trim() : '';
@@ -33,7 +162,7 @@ async function readPatientInput(request) {
     throw new HttpError(
       400,
       'INVALID_FULL_NAME',
-      `Full name must be between 1 and ${MAX_NAME_LENGTH} characters.`,
+      `Informe o nome completo (até ${MAX_NAME_LENGTH} caracteres).`,
     );
   }
 
@@ -42,14 +171,14 @@ async function readPatientInput(request) {
     email.length > MAX_EMAIL_LENGTH ||
     !EMAIL_PATTERN.test(email)
   ) {
-    throw new HttpError(400, 'INVALID_EMAIL', 'Enter a valid email address.');
+    throw new HttpError(400, 'INVALID_EMAIL', 'Informe um e-mail válido.');
   }
 
   if (phone === undefined || (phone !== null && phone.length > MAX_PHONE_LENGTH)) {
     throw new HttpError(
       400,
       'INVALID_PHONE',
-      `Phone must be at most ${MAX_PHONE_LENGTH} characters.`,
+      `O telefone deve ter no máximo ${MAX_PHONE_LENGTH} caracteres.`,
     );
   }
 
@@ -86,17 +215,17 @@ function providerFailure(error) {
     error?.code === 'user_already_exists' ||
     error?.code === 'email_exists'
   ) {
-    return new HttpError(409, 'EMAIL_ALREADY_REGISTERED', 'This email is already registered.');
+    return new HttpError(409, 'EMAIL_ALREADY_REGISTERED', 'Este e-mail já está cadastrado.');
   }
 
   return new HttpError(
     503,
     'PATIENT_CREATION_UNAVAILABLE',
-    'Patient account creation is temporarily unavailable.',
+    'A criação da conta está temporariamente indisponível.',
   );
 }
 
-export default async function createPatient(
+async function createPatient(
   request,
   {
     authenticate = authenticateRequest,
@@ -106,7 +235,7 @@ export default async function createPatient(
 ) {
   if (request.method !== 'POST') {
     return errorResponse(
-      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Only POST is supported.'),
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
     );
   }
 
@@ -138,7 +267,7 @@ export default async function createPatient(
       throw new HttpError(
         503,
         'PATIENT_CREATION_UNAVAILABLE',
-        'Patient account creation is temporarily unavailable.',
+        'A criação da conta está temporariamente indisponível.',
       );
     }
 
@@ -165,8 +294,8 @@ export default async function createPatient(
           ? 'PATIENT_PROFILE_CREATION_FAILED'
           : 'PATIENT_CREATION_RECOVERY_REQUIRED',
         cleanupSucceeded
-          ? 'Patient setup could not be completed. The account was removed; try again.'
-          : 'Patient setup failed and account cleanup could not be confirmed. Contact support before retrying.',
+          ? 'Não foi possível concluir o cadastro. A conta foi removida; tente novamente.'
+          : 'O cadastro falhou e não foi possível confirmar a remoção da conta. Entre em contato com o suporte antes de tentar novamente.',
       );
     }
 
@@ -188,8 +317,8 @@ export default async function createPatient(
             ? 'PATIENT_PROFILE_CREATION_FAILED'
             : 'PATIENT_CREATION_RECOVERY_REQUIRED',
           cleanupSucceeded
-            ? 'Patient setup could not be completed. The account was removed; try again.'
-            : 'Patient setup failed and account cleanup could not be confirmed. Contact support before retrying.',
+            ? 'Não foi possível concluir o cadastro. A conta foi removida; tente novamente.'
+            : 'O cadastro falhou e não foi possível confirmar a remoção da conta. Entre em contato com o suporte antes de tentar novamente.',
         );
       }
     }
@@ -215,4 +344,11 @@ export default async function createPatient(
   } catch (error) {
     return errorResponse(error);
   }
+}
+
+export default function patients(request, dependencies) {
+  if (request.method === 'GET') {
+    return listPatients(request, dependencies);
+  }
+  return createPatient(request, dependencies);
 }

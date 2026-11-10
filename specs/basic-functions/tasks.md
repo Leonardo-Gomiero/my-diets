@@ -28,9 +28,9 @@
 
 ## Phase 4: Student Administration
 
-- [ ] **FE-06**: Build the admin student list with search, status, and create/edit actions.
-- [ ] **FE-07**: Build student create/edit form for full name, email, optional phone, and active status.
-- [ ] **FE-08**: Build the one-time temporary-password result view with copy action and clear close/loss warning; do not keep the password after leaving the view.
+- [ ] **FE-06**: Build the admin patient list with search, status, and create/edit actions.
+- [ ] **FE-07**: Build patient create/edit form for full name, email, optional phone, and active status.
+- [x] **FE-08**: Build the one-time temporary-password result view with copy action and clear close/loss warning; do not keep the password after leaving the view.
 - [ ] **FE-09**: Add student deactivation/reactivation and confirm that deactivation preserves historical diets.
 - [ ] **BE-08**: Implement and test admin-only student list/detail/update/status endpoints with server-side validation.
 

@@ -173,7 +173,7 @@ For each request, derive identity from the verified Supabase token. Never trust 
 - Add `AdminLayout` and `StudentLayout`; keep authentication screens in `AuthLayout`.
 - Add small reusable inputs, selects, status badges, confirmation dialog, and one-time credential display.
 - Place request code in `src/services/`; centralize API errors and bearer-token attachment in `apiClient.js`.
-- The admin area needs a student list/form and a diet editor. The student area needs a read-only active diet page.
+- The admin area needs a patient list/form and a diet editor. The student area needs a read-only active diet page.
 - Meal editing must support add/remove/reorder operations and food options A/B/C without exposing clinical guidance or auto-generated recommendations.
 - Keep all feedback visible and accessible; never treat an API error as an empty successful result.
 - Language and date/number formatting use `pt-BR`.

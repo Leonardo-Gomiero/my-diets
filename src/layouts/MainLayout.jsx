@@ -14,8 +14,8 @@ export default function MainLayout({ children }) {
     setLogoutError('');
     try {
       await signOut();
-    } catch (error) {
-      setLogoutError(error.message);
+    } catch {
+      setLogoutError('Não foi possível encerrar a sessão. Tente novamente.');
     } finally {
       navigate('/login', { replace: true });
     }
@@ -36,10 +36,10 @@ export default function MainLayout({ children }) {
             className="topbar__logout"
             variant="quiet"
             onClick={handleSignOut}
-            aria-label="Sign out"
+            aria-label="Sair"
           >
             <FiLogOut aria-hidden="true" />
-            <span>Sign out</span>
+            <span>Sair</span>
           </Button>
         </div>
       </header>
@@ -49,7 +49,7 @@ export default function MainLayout({ children }) {
         </p>
       )}
       <main className="main-content">{children}</main>
-      <footer className="main-footer">Made for your everyday wellbeing.</footer>
+      <footer className="main-footer">Feito para o seu dia a dia.</footer>
     </div>
   );
 }

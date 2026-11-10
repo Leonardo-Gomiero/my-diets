@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AuthLayout from './layouts/AuthLayout.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import PatientsPage from './pages/PatientsPage.jsx';
 import Login from './pages/Login.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -44,7 +45,7 @@ function AppRoutes() {
           path="/admin"
           element={
             <MainLayout>
-              <Dashboard />
+              <PatientsPage />
             </MainLayout>
           }
         />
