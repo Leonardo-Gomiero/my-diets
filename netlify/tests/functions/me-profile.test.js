@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import updateNutritionistProfile from './me-profile.js';
+import updateNutritionistProfile from '../../functions/me-profile.js';
 
 function request(body, method = 'PUT') {
   return new Request('https://example.test/api/me/profile', {

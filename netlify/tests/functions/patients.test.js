@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import createPatient from './patients.js';
-import { generateTemporaryPassword } from './_shared/temporaryPassword.js';
-import { HttpError } from './_shared/http.js';
+import createPatient from '../../functions/patients.js';
+import { generateTemporaryPassword } from '../../functions/_shared/temporaryPassword.js';
+import { HttpError } from '../../functions/_shared/http.js';
 
 function request(body, method = 'POST') {
   return new Request('https://example.test/api/patients', {

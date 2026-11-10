@@ -4,6 +4,6 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   test: {
-    include: ['src/**/*.test.{js,jsx}', 'netlify/functions/**/*.test.js'],
+    include: ['src/**/*.test.{js,jsx}', 'netlify/tests/**/*.test.js'],
   },
 });

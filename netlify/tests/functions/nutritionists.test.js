@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import nutritionists from './nutritionists.js';
+import nutritionists from '../../functions/nutritionists.js';
 
 function request(method, body) {
   return new Request('https://example.test/api/nutritionists', {

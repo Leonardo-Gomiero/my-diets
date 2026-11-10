@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import meActiveDiet from './me-active-diet.js';
-import { HttpError } from './_shared/http.js';
+import meActiveDiet from '../../functions/me-active-diet.js';
+import { HttpError } from '../../functions/_shared/http.js';
 
 const STUDENT_ID = '123e4567-e89b-42d3-a456-426614174000';
 const OTHER_STUDENT_ID = '123e4567-e89b-42d3-a456-426614174001';

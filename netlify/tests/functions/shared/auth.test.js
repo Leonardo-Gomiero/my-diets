@@ -8,12 +8,16 @@ import {
   requireAdmin,
   requirePasswordChangeComplete,
   requireRole,
-} from './auth.js';
+} from '../../../functions/_shared/auth.js';
 import {
   createServerSupabaseClient,
   createTokenVerifierClient,
-} from './supabase.js';
-import { errorResponse, HttpError, successResponse } from './http.js';
+} from '../../../functions/_shared/supabase.js';
+import {
+  errorResponse,
+  HttpError,
+  successResponse,
+} from '../../../functions/_shared/http.js';
 
 const user = { id: 'auth-user-id' };
 const activeStudent = {
@@ -274,7 +278,7 @@ describe('HTTP response helpers', () => {
 
 describe('frontend/server credential boundary', () => {
   it('keeps the service-role key and function imports out of frontend source', () => {
-    const sourceRoot = fileURLToPath(new URL('../../../src/', import.meta.url));
+    const sourceRoot = fileURLToPath(new URL('../../../../src/', import.meta.url));
     const files = [];
 
     function collectFiles(directory) {

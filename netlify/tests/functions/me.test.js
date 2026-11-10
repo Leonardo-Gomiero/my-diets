@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import me from './me.js';
-import { HttpError } from './_shared/http.js';
+import me from '../../functions/me.js';
+import { HttpError } from '../../functions/_shared/http.js';
 
 function request(method = 'GET') {
   return new Request('https://example.test/api/me', {

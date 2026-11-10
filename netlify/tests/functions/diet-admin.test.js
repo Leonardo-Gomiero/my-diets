@@ -7,8 +7,8 @@ import {
   getDietForEdit,
   getPatientDietHistory,
   updateDietDraft,
-} from './_shared/dietAdmin.js';
-import { HttpError } from './_shared/http.js';
+} from '../../functions/_shared/dietAdmin.js';
+import { HttpError } from '../../functions/_shared/http.js';
 
 const PATIENT_ID = '123e4567-e89b-42d3-a456-426614174000';
 const DIET_ID = '123e4567-e89b-42d3-a456-426614174001';

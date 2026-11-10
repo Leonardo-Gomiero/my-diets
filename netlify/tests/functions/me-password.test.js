@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import changePassword from './me-password.js';
+import changePassword from '../../functions/me-password.js';
 
 function request(password = 'a-long-test-password') {
   return new Request('https://example.test/api/me/password', {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import patientPassword from './patient-password.js';
-import { HttpError } from './_shared/http.js';
-import { authenticateRequest } from './_shared/auth.js';
+import patientPassword from '../../functions/patient-password.js';
+import { HttpError } from '../../functions/_shared/http.js';
+import { authenticateRequest } from '../../functions/_shared/auth.js';
 
 const PATIENT_ID = '343e4567-e89b-42d3-a456-426614174000';
 

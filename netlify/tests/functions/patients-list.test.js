@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import patients, { listPatients } from './patients.js';
-import { HttpError } from './_shared/http.js';
+import patients, { listPatients } from '../../functions/patients.js';
+import { HttpError } from '../../functions/_shared/http.js';
 
 function request(path = '/api/patients') {
   return new Request(`https://example.test${path}`, {

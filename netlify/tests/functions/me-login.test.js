@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import updateAdminLogin from './me-login.js';
+import updateAdminLogin from '../../functions/me-login.js';
 
 function request(login) {
   return new Request('https://example.test/api/me/login', {

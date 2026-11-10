@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import resetNutritionistPassword from './nutritionist-password.js';
+import resetNutritionistPassword from '../../functions/nutritionist-password.js';
 
 const NUTRITIONIST_ID = '343e4567-e89b-42d3-a456-426614174000';
 

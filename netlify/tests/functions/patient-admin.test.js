@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import patientDetail from './patient-detail.js';
-import patientStatus from './patient-status.js';
-import me from './me.js';
+import patientDetail from '../../functions/patient-detail.js';
+import patientStatus from '../../functions/patient-status.js';
+import me from '../../functions/me.js';
 
 const PATIENT_ID = '343e4567-e89b-42d3-a456-426614174000';
 
