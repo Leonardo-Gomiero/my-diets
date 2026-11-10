@@ -94,7 +94,7 @@ describe('PatientsPage', () => {
     );
   });
 
-  it('links active patients to draft creation and keeps inactive patient access disabled', async () => {
+  it('links each patient to their diets page', async () => {
     getPatients.mockResolvedValue([
       samplePatient,
       { ...samplePatient, id: 'patient-2', full_name: 'Bia Inativa', is_active: false },
@@ -102,12 +102,12 @@ describe('PatientsPage', () => {
     render(<PatientsPage />);
 
     const activeLink = await screen.findByRole('link', {
-      name: 'Criar dieta para Ana Exemplo',
+      name: 'Dietas de Ana Exemplo',
     });
-    expect(activeLink.getAttribute('href')).toBe('/admin/patients/patient-1/diet');
-    expect(
-      screen.getByRole('button', { name: 'Criar dieta para Bia Inativa' }).disabled,
-    ).toBe(true);
+    expect(activeLink.textContent).toBe('Dietas');
+    expect(activeLink.getAttribute('href')).toBe('/admin/patients/patient-1/diets');
+    expect(screen.getByRole('link', { name: 'Dietas de Bia Inativa' })
+      .getAttribute('href')).toBe('/admin/patients/patient-2/diets');
   });
 
   it('shows API load errors and retries without treating them as empty results', async () => {

@@ -4,7 +4,7 @@ function apiErrorMessage(code, message) {
     DIET_NOT_ACTIVATABLE: 'Somente rascunhos ou dietas arquivadas podem ser ativados.',
     DIET_NOT_FOUND: 'O rascunho não foi encontrado.',
     DIET_SAVE_UNAVAILABLE: 'Não foi possível salvar o rascunho. Tente novamente.',
-    DIET_HISTORY_UNAVAILABLE: 'O histórico de dietas está temporariamente indisponível.',
+    DIET_HISTORY_UNAVAILABLE: 'As dietas estão temporariamente indisponíveis.',
     DIET_ACTIVATION_UNAVAILABLE: 'Não foi possível confirmar a ativação. Atualize o histórico antes de tentar novamente.',
     PATIENT_NOT_FOUND: 'Paciente não encontrado.',
     FORBIDDEN: 'Você não tem permissão para editar dietas.',

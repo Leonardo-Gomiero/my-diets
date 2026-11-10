@@ -6,7 +6,7 @@ import MainLayout from './layouts/MainLayout.jsx';
 import ActiveDietPage from './pages/ActiveDietPage.jsx';
 import PatientsPage from './pages/PatientsPage.jsx';
 import DietEditorPage from './pages/DietEditorPage.jsx';
-import DietHistoryPage from './pages/DietHistoryPage.jsx';
+import DietsPage from './pages/DietsPage.jsx';
 import Login from './pages/Login.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -47,7 +47,7 @@ function AppRoutes() {
           path="/admin/patients/:patientId/diets"
           element={
             <MainLayout>
-              <DietHistoryPage />
+              <DietsPage />
             </MainLayout>
           }
         />

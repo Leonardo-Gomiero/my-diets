@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { activateDiet, getDietHistory } from '../services/dietService.js';
-import DietHistoryPage from './DietHistoryPage.jsx';
+import DietsPage from './DietsPage.jsx';
 
 vi.mock('../context/AuthContext.jsx', () => ({ useAuth: vi.fn() }));
 vi.mock('../services/dietService.js', () => ({
@@ -34,11 +34,11 @@ const archived = {
   created_at: '2026-03-02T10:00:00Z',
 };
 
-function renderHistory() {
+function renderDiets() {
   return render(
     <MemoryRouter initialEntries={['/admin/patients/patient-1/diets']}>
       <Routes>
-        <Route path="/admin/patients/:patientId/diets" element={<DietHistoryPage />} />
+        <Route path="/admin/patients/:patientId/diets" element={<DietsPage />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -55,16 +55,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('DietHistoryPage', () => {
+describe('DietsPage', () => {
   it('shows loading, status, version, and allows draft or archived diet activation', async () => {
     let finish;
     getDietHistory.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
-    renderHistory();
-    expect(screen.getByRole('status').textContent).toContain('Carregando histórico');
+    renderDiets();
+    expect(screen.getByRole('status').textContent).toContain('Carregando dietas');
     finish([archived, draft, active]);
 
     expect(await screen.findByText('Rascunho')).toBeTruthy();
     expect(screen.getByText('Ativa')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Dietas' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Plano novo' })).toBeTruthy();
     expect(screen.getByText('Arquivada')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Ativar versão 2' })).toBeTruthy();
@@ -83,7 +84,7 @@ describe('DietHistoryPage', () => {
       status: 'ACTIVE',
       previous_active_id: active.id,
     });
-    renderHistory();
+    renderDiets();
     fireEvent.click(await screen.findByRole('button', { name: 'Reativar versão 3' }));
 
     expect(confirm).toHaveBeenCalledWith(
@@ -108,7 +109,7 @@ describe('DietHistoryPage', () => {
       { ...active, status: 'ARCHIVED' },
     ]);
     activateDiet.mockResolvedValue({ ...draft, status: 'ACTIVE' });
-    renderHistory();
+    renderDiets();
     fireEvent.click(await screen.findByRole('button', { name: 'Ativar versão 2' }));
 
     expect(confirm).toHaveBeenCalledWith(
@@ -130,7 +131,7 @@ describe('DietHistoryPage', () => {
   it('does not activate after cancellation', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     getDietHistory.mockResolvedValue([draft]);
-    renderHistory();
+    renderDiets();
     fireEvent.click(await screen.findByRole('button', { name: 'Ativar versão 2' }));
     expect(activateDiet).not.toHaveBeenCalled();
   });
@@ -141,7 +142,7 @@ describe('DietHistoryPage', () => {
     activateDiet.mockRejectedValue(
       new Error('Não foi possível confirmar a ativação. Atualize o histórico antes de tentar novamente.'),
     );
-    renderHistory();
+    renderDiets();
     fireEvent.click(await screen.findByRole('button', { name: 'Ativar versão 2' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain(
@@ -151,16 +152,24 @@ describe('DietHistoryPage', () => {
     await waitFor(() => expect(getDietHistory).toHaveBeenCalledTimes(2));
   });
 
-  it('shows history loading errors with a retry action', async () => {
+  it('shows diet loading errors with a retry action', async () => {
     getDietHistory
-      .mockRejectedValueOnce(new Error('Histórico indisponível.'))
+      .mockRejectedValueOnce(new Error('Dietas indisponíveis.'))
       .mockResolvedValueOnce([]);
-    renderHistory();
+    renderDiets();
     expect((await screen.findByRole('alert')).textContent).toContain(
-      'Histórico indisponível.',
+      'Dietas indisponíveis.',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
-    expect(await screen.findByRole('heading', { name: 'Nenhuma versão de dieta' }))
+    expect(await screen.findByRole('heading', { name: 'Nenhuma dieta cadastrada' }))
       .toBeTruthy();
+  });
+
+  it('keeps new diet creation accessible from the diets page', async () => {
+    getDietHistory.mockResolvedValue([]);
+    renderDiets();
+
+    const newDietLink = await screen.findByRole('link', { name: 'Nova dieta' });
+    expect(newDietLink.getAttribute('href')).toBe('/admin/patients/patient-1/diet');
   });
 });

@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { activateDiet, getDietHistory } from '../services/dietService.js';
-import './DietHistoryPage.css';
+import './DietsPage.css';
 
 const STATUS_LABELS = {
   DRAFT: 'Rascunho',
@@ -20,7 +20,7 @@ function formatDate(value) {
     : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date);
 }
 
-export default function DietHistoryPage() {
+export default function DietsPage() {
   const { patientId } = useParams();
   const { session } = useAuth();
   const accessToken = session?.access_token;
@@ -31,12 +31,12 @@ export default function DietHistoryPage() {
   const [activatingId, setActivatingId] = useState('');
   const [reloadCount, setReloadCount] = useState(0);
 
-  const loadHistory = useCallback(async () => {
+  const loadDiets = useCallback(async () => {
     setStatus('loading');
     setError('');
     try {
-      const history = await getDietHistory(patientId, { accessToken });
-      setDiets(history);
+      const patientDiets = await getDietHistory(patientId, { accessToken });
+      setDiets(patientDiets);
       setStatus('success');
     } catch (loadError) {
       setError(loadError.message);
@@ -45,8 +45,8 @@ export default function DietHistoryPage() {
   }, [accessToken, patientId]);
 
   useEffect(() => {
-    loadHistory();
-  }, [loadHistory, reloadCount]);
+    loadDiets();
+  }, [loadDiets, reloadCount]);
 
   async function handleActivate(diet) {
     const activeDiet = diets.find((item) => item.status === 'ACTIVE');
@@ -65,7 +65,7 @@ export default function DietHistoryPage() {
       );
       setReloadCount((count) => count + 1);
     } catch (activationError) {
-      await loadHistory();
+      await loadDiets();
       setError(activationError.message);
     } finally {
       setActivatingId('');
@@ -73,19 +73,19 @@ export default function DietHistoryPage() {
   }
 
   return (
-    <section className="diet-history" aria-labelledby="diet-history-title">
-      <Link className="diet-history__back" to="/admin">
+    <section className="diets-page" aria-labelledby="diets-page-title">
+      <Link className="diets-page__back" to="/admin">
         <FiArrowLeft aria-hidden="true" />
         Voltar aos pacientes
       </Link>
-      <header className="diet-history__heading">
+      <header className="diets-page__heading">
         <div>
-          <span className="eyebrow">ADMINISTRAÇÃO · VERSÕES</span>
-          <h1 id="diet-history-title">Histórico de dietas</h1>
-          <p>Consulte as versões e escolha um rascunho ou uma dieta arquivada para ativar.</p>
+          <span className="eyebrow">ADMINISTRAÇÃO · DIETAS</span>
+          <h1 id="diets-page-title">Dietas</h1>
+          <p>Consulte as versões, crie novas dietas e escolha qual ficará ativa para o paciente.</p>
         </div>
         <Link
-          className="button button--primary diet-history__new"
+          className="button button--primary diets-page__new"
           to={`/admin/patients/${encodeURIComponent(patientId)}/diet`}
         >
           <FiPlus aria-hidden="true" />
@@ -93,18 +93,18 @@ export default function DietHistoryPage() {
         </Link>
       </header>
 
-      {success && <p className="diet-history__success" role="status">{success}</p>}
+      {success && <p className="diets-page__success" role="status">{success}</p>}
 
       {status === 'loading' && (
-        <div className="diet-history__state" role="status" aria-live="polite">
+        <div className="diets-page__state" role="status" aria-live="polite">
           <span className="loading-spinner" aria-hidden="true" />
-          Carregando histórico…
+          Carregando dietas…
         </div>
       )}
 
       {status === 'error' && (
-        <div className="diet-history__state diet-history__state--error" role="alert">
-          <p>Não foi possível carregar o histórico. {error}</p>
+        <div className="diets-page__state diets-page__state--error" role="alert">
+          <p>Não foi possível carregar as dietas. {error}</p>
           <Button
             type="button"
             variant="quiet"
@@ -117,28 +117,28 @@ export default function DietHistoryPage() {
       )}
 
       {error && status !== 'error' && (
-        <p className="diet-history__error" role="alert">{error}</p>
+        <p className="diets-page__error" role="alert">{error}</p>
       )}
 
       {status === 'success' && diets.length === 0 && (
-        <div className="diet-history__state diet-history__state--empty">
-          <h2>Nenhuma versão de dieta</h2>
-          <p>Crie um rascunho para começar o histórico deste paciente.</p>
+        <div className="diets-page__state diets-page__state--empty">
+          <h2>Nenhuma dieta cadastrada</h2>
+          <p>Crie um rascunho para começar a montar as dietas deste paciente.</p>
         </div>
       )}
 
       {status === 'success' && diets.length > 0 && (
-        <ol className="diet-history__list" aria-label="Versões da dieta, da mais recente à mais antiga">
+        <ol className="diets-page__list" aria-label="Dietas da mais recente à mais antiga">
           {diets.map((diet) => (
-            <li className="diet-history__item" key={diet.id}>
-              <div className="diet-history__details">
-                <div className="diet-history__title-row">
+            <li className="diets-page__item" key={diet.id}>
+              <div className="diets-page__details">
+                <div className="diets-page__title-row">
                   <h2>{diet.title}</h2>
-                  <span className={`diet-history__badge diet-history__badge--${diet.status.toLowerCase()}`}>
+                  <span className={`diets-page__badge diets-page__badge--${diet.status.toLowerCase()}`}>
                     {STATUS_LABELS[diet.status] ?? 'Status desconhecido'}
                   </span>
                 </div>
-                <p className="diet-history__meta">
+                <p className="diets-page__meta">
                   Versão {diet.version} <span aria-hidden="true">·</span> Criada em {formatDate(diet.created_at)}
                 </p>
               </div>
