@@ -122,6 +122,27 @@ describe('authenticateRequest', () => {
     ).rejects.toMatchObject({ status: 403, code: 'PROFILE_NOT_FOUND' });
   });
 
+  it('rejects inactive accounts before the forced password-change exception', async () => {
+    const inactivePendingStudent = {
+      ...activeStudent,
+      is_active: false,
+      must_change_password: true,
+    };
+
+    await expect(
+      authenticateRequest(request(), {
+        createVerifierClient: () =>
+          verifierClient({ data: { user }, error: null }),
+        createProfileClient: () =>
+          profileClient({ data: inactivePendingStudent, error: null }).client,
+        allowPasswordChange: true,
+      }),
+    ).rejects.toMatchObject({
+      status: 403,
+      code: 'ACCOUNT_INACTIVE',
+    });
+  });
+
   it('does not expose profile database errors', async () => {
     await expect(
       authenticateRequest(request(), {

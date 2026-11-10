@@ -153,7 +153,8 @@ All function routes are under `/.netlify/functions/` or are mapped to `/api/*` i
 | `GET /api/patients?search=` | Admin | List/search active and inactive patient profiles |
 | `POST /api/patients` | Admin | Create a patient and return the one-time temporary password |
 | `GET /api/patients/:id` | Admin | Get profile and diet summary |
-| `PUT /api/patients/:id` | Admin | Update basic fields/status |
+| `PUT /api/patients/:id` | Admin | Update full name, email, and optional phone |
+| `PATCH /api/patients/:id/status` | Admin | Activate/deactivate without deleting the profile or diet history |
 | `POST /api/patients/:id/temporary-password` | Admin | Rotate password and return it once |
 | `GET /api/me` | Authenticated | Return the caller's application profile and access state |
 | `PUT /api/me/password` | Authenticated, including forced-change session | Change password and clear `must_change_password` |

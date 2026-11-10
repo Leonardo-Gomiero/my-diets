@@ -88,10 +88,10 @@ The profile may include an optional phone number. Detailed health information is
 ### Business rules
 
 - Email addresses must be unique and normalized consistently.
-- Inactive students cannot sign in or retrieve diet data.
+- Inactive students cannot sign in to the application or retrieve any data; server checks and RLS enforce this even when an existing token is presented.
 - Deactivation preserves the account reference and all diet history.
 - Permanent deletion is not available in the MVP.
-- Only the nutritionist can create student accounts or change their status.
+- Only the nutritionist can create and edit student accounts or change their status.
 
 ## 5. Diet Management
 

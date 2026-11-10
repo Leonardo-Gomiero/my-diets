@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createPatient, getPatients } from './patientService.js';
+import {
+  createPatient,
+  getPatient,
+  getPatients,
+  updatePatient,
+  updatePatientStatus,
+} from './patientService.js';
 
 function response(body, status = 200) {
   return {
@@ -83,5 +89,62 @@ describe('patientService', () => {
         fetchImpl: vi.fn().mockRejectedValue(abort),
       }),
     ).rejects.toBe(abort);
+  });
+
+  it('uses the per-patient detail and update endpoints with a bearer token', async () => {
+    const patient = {
+      id: 'patient-1',
+      full_name: 'Ana Silva',
+      email: 'ana@example.test',
+      phone: null,
+      is_active: true,
+    };
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(response({ data: { patient } }))
+      .mockResolvedValueOnce(response({ data: { patient } }));
+
+    await expect(
+      getPatient(patient.id, { accessToken: 'admin-token', fetchImpl }),
+    ).resolves.toEqual(patient);
+    await expect(
+      updatePatient(
+        patient.id,
+        { full_name: patient.full_name, email: patient.email, phone: null },
+        { accessToken: 'admin-token', fetchImpl },
+      ),
+    ).resolves.toEqual(patient);
+
+    expect(fetchImpl.mock.calls[0][0]).toBe('/api/patients/patient-1');
+    expect(fetchImpl.mock.calls[1]).toEqual([
+      '/api/patients/patient-1',
+      expect.objectContaining({
+        method: 'PUT',
+        headers: {
+          Authorization: 'Bearer admin-token',
+          'Content-Type': 'application/json',
+        },
+      }),
+    ]);
+  });
+
+  it('uses a dedicated status endpoint for activation and deactivation', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      response({ data: { patient: { id: 'patient-1', is_active: false } } }),
+    );
+
+    await expect(
+      updatePatientStatus('patient-1', false, {
+        accessToken: 'admin-token',
+        fetchImpl,
+      }),
+    ).resolves.toEqual({ id: 'patient-1', is_active: false });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/patients/patient-1/status',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: false }),
+      }),
+    );
   });
 });

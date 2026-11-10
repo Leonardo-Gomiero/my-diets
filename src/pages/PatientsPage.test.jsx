@@ -2,7 +2,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../context/AuthContext.jsx';
-import { createPatient, getPatients } from '../services/patientService.js';
+import {
+  createPatient,
+  getPatient,
+  getPatients,
+  updatePatient,
+  updatePatientStatus,
+} from '../services/patientService.js';
 import PatientsPage from './PatientsPage.jsx';
 
 vi.mock('../context/AuthContext.jsx', () => ({
@@ -11,7 +17,10 @@ vi.mock('../context/AuthContext.jsx', () => ({
 
 vi.mock('../services/patientService.js', () => ({
   createPatient: vi.fn(),
+  getPatient: vi.fn(),
   getPatients: vi.fn(),
+  updatePatient: vi.fn(),
+  updatePatientStatus: vi.fn(),
 }));
 
 const samplePatient = {
@@ -24,6 +33,9 @@ const samplePatient = {
 
 beforeEach(() => {
   getPatients.mockReset();
+  getPatient.mockReset();
+  updatePatient.mockReset();
+  updatePatientStatus.mockReset();
   useAuth.mockReturnValue({
     session: { access_token: 'admin-access-token' },
   });
@@ -167,5 +179,126 @@ describe('PatientsPage', () => {
       expect(screen.queryByText('one-time-password-only')).toBeNull();
       expect(getPatients).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('loads and saves editable patient basics, showing API errors', async () => {
+    getPatients.mockResolvedValue([samplePatient]);
+    getPatient.mockResolvedValue(samplePatient);
+    updatePatient.mockRejectedValue(new Error('Este e-mail já está cadastrado.'));
+    render(<PatientsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar Ana Exemplo' }));
+
+    expect(await screen.findByRole('heading', { name: 'Editar cadastro' })).toBeTruthy();
+    expect(getPatient).toHaveBeenCalledWith(
+      samplePatient.id,
+      { accessToken: 'admin-access-token' },
+    );
+    fireEvent.change(screen.getByLabelText('Nome completo'), {
+      target: { value: 'Ana Atualizada' },
+    });
+    fireEvent.change(screen.getByLabelText('E-mail'), {
+      target: { value: 'ana@example.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Este e-mail já está cadastrado.',
+    );
+    expect(updatePatient).toHaveBeenCalledWith(
+      samplePatient.id,
+      {
+        full_name: 'Ana Atualizada',
+        email: 'ana@example.test',
+        phone: null,
+      },
+      { accessToken: 'admin-access-token' },
+    );
+  });
+
+  it('confirms deactivation, updates status, and allows reactivation', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    getPatients.mockResolvedValue([samplePatient]);
+    updatePatientStatus
+      .mockResolvedValueOnce({ id: samplePatient.id, is_active: false })
+      .mockResolvedValueOnce({ id: samplePatient.id, is_active: true });
+
+    render(<PatientsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Desativar Ana Exemplo' }));
+
+    expect(confirm).toHaveBeenCalledWith(
+      expect.stringContaining('perfil e o histórico de dietas serão preservados'),
+    );
+    await waitFor(() =>
+      expect(updatePatientStatus).toHaveBeenCalledWith(
+        samplePatient.id,
+        false,
+        { accessToken: 'admin-access-token' },
+      ),
+    );
+    expect(await screen.findByText('Inativo')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ativar Ana Exemplo' }));
+    await waitFor(() =>
+      expect(updatePatientStatus).toHaveBeenLastCalledWith(
+        samplePatient.id,
+        true,
+        { accessToken: 'admin-access-token' },
+      ),
+    );
+    expect(await screen.findByText('Ativo')).toBeTruthy();
+  });
+
+  it('shows an error when the patient detail cannot be loaded', async () => {
+    getPatients.mockResolvedValue([samplePatient]);
+    getPatient.mockRejectedValue(new Error('Paciente não encontrado.'));
+    render(<PatientsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar Ana Exemplo' }));
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Paciente não encontrado.',
+    );
+  });
+
+  it('updates the displayed profile after a successful edit', async () => {
+    const updatedPatient = {
+      ...samplePatient,
+      full_name: 'Ana Atualizada',
+      email: 'ana.atualizada@example.test',
+      phone: '+5511777777777',
+    };
+    getPatients.mockResolvedValue([samplePatient]);
+    getPatient.mockResolvedValue(samplePatient);
+    updatePatient.mockResolvedValue(updatedPatient);
+    render(<PatientsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar Ana Exemplo' }));
+    await screen.findByRole('heading', { name: 'Editar cadastro' });
+    fireEvent.change(screen.getByLabelText('Nome completo'), {
+      target: { value: updatedPatient.full_name },
+    });
+    fireEvent.change(screen.getByLabelText('E-mail'), {
+      target: { value: updatedPatient.email },
+    });
+    fireEvent.change(screen.getByLabelText('Telefone (opcional)'), {
+      target: { value: updatedPatient.phone },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    expect(await screen.findByText('ana.atualizada@example.test')).toBeTruthy();
+    expect(screen.getByText('Ana Atualizada')).toBeTruthy();
+    expect(screen.getByText('+5511777777777')).toBeTruthy();
+  });
+
+  it('shows status update errors without changing the displayed active state', async () => {
+    getPatients.mockResolvedValue([samplePatient]);
+    updatePatientStatus.mockRejectedValue(new Error('Não foi possível salvar.'));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<PatientsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Desativar Ana Exemplo' }));
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Não foi possível salvar.',
+    );
+    expect(screen.getByText('Ativo')).toBeTruthy();
   });
 });

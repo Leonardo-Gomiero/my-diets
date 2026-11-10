@@ -105,6 +105,22 @@ WHERE oid IN (
 The SQL checks above describe local verification steps; they do not imply that
 this migration has been applied to or tested against a hosted Supabase project.
 
+## Inactive student access
+
+The migration `20261110150000_block_inactive_student_reads.sql` tightens the
+profile and student-detail read policies. An inactive student cannot use an
+existing authenticated token to read their profile, contact details, or diet
+tree through Supabase. The application login also verifies `is_active` through
+`GET /api/me` and rejects inactive accounts. Deactivation changes only
+`profiles.is_active`; it does not delete the Auth identity, profile, details,
+or diet history.
+
+Validate locally after applying migrations: set an inactive test student's JWT
+subject and confirm queries against `profiles`, `student_details`, and `diets`
+return no rows. Restore the student's active state and verify their own rows
+become available again; another student's rows must remain inaccessible.
+These are local validation steps and do not claim a hosted Supabase test.
+
 ## Diet and meal migration
 
 The next migration adds `diets`, `meals`, `food_groups`, and `food_options`.

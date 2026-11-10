@@ -96,6 +96,10 @@ export async function authenticateRequest(
     throw new HttpError(403, 'PROFILE_NOT_FOUND', 'Account access is not set up.');
   }
 
+  if (!profile.is_active) {
+    throw new HttpError(403, 'ACCOUNT_INACTIVE', 'This account is inactive.');
+  }
+
   if (
     !allowPasswordChange &&
     profile.role === 'STUDENT' &&

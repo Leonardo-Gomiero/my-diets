@@ -149,6 +149,21 @@
   color: #747b75;
 }
 
+.patient-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.patient-actions .button {
+  font-size: 12px;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.patients-alert--page {
+  margin-bottom: 16px;
+}
+
 .patients-state {
   align-items: center;
   color: var(--color-text-muted);
@@ -528,6 +543,11 @@
 
   .patients-table tbody th::before {
     content: none;
+  }
+
+  .patients-table .patient-actions {
+    align-items: center;
+    justify-content: flex-end;
   }
 
   .patients-panel {
