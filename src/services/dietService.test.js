@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   activateDiet,
   createDiet,
+  deleteDiet,
+  duplicateDiet,
   getDiet,
   getDietHistory,
   updateDiet,
@@ -161,5 +163,47 @@ describe('dietService', () => {
     await expect(
       activateDiet('patient-1', 'diet-1', { accessToken: 'token', fetchImpl }),
     ).rejects.toThrow('O serviço retornou uma resposta inválida.');
+  });
+
+  it('duplicates a diet through the authorized endpoint and expects a draft', async () => {
+    const duplicate = { ...diet, id: 'diet-copy', status: 'DRAFT' };
+    const fetchImpl = vi.fn().mockResolvedValue(
+      response({ data: { diet: duplicate } }, { status: 201 }),
+    );
+    await expect(
+      duplicateDiet('diet-1', { accessToken: 'token', fetchImpl }),
+    ).resolves.toEqual(duplicate);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/diets/diet-1',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer token' },
+        cache: 'no-store',
+      }),
+    );
+  });
+
+  it('rejects a duplicate response that is not a draft', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      response({ data: { diet: { ...diet, status: 'ACTIVE' } } }),
+    );
+    await expect(
+      duplicateDiet('diet-1', { accessToken: 'token', fetchImpl }),
+    ).rejects.toThrow('O serviço retornou uma resposta inválida.');
+  });
+
+  it('deletes a diet and validates the deleted id', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(response({ data: { id: 'diet-1' } }));
+    await expect(
+      deleteDiet('diet-1', { accessToken: 'token', fetchImpl }),
+    ).resolves.toBeUndefined();
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/diets/diet-1',
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer token' },
+        cache: 'no-store',
+      }),
+    );
   });
 });

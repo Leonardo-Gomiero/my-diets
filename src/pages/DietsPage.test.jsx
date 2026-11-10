@@ -3,12 +3,19 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { activateDiet, getDietHistory } from '../services/dietService.js';
+import {
+  activateDiet,
+  deleteDiet,
+  duplicateDiet,
+  getDietHistory,
+} from '../services/dietService.js';
 import DietsPage from './DietsPage.jsx';
 
 vi.mock('../context/AuthContext.jsx', () => ({ useAuth: vi.fn() }));
 vi.mock('../services/dietService.js', () => ({
   activateDiet: vi.fn(),
+  deleteDiet: vi.fn(),
+  duplicateDiet: vi.fn(),
   getDietHistory: vi.fn(),
 }));
 
@@ -48,6 +55,8 @@ beforeEach(() => {
   useAuth.mockReturnValue({ session: { access_token: 'admin-token' } });
   getDietHistory.mockReset();
   activateDiet.mockReset();
+  deleteDiet.mockReset();
+  duplicateDiet.mockReset();
 });
 
 afterEach(() => {
@@ -56,7 +65,7 @@ afterEach(() => {
 });
 
 describe('DietsPage', () => {
-  it('shows diet status, edit actions, and activation for inactive versions', async () => {
+  it('shows status and edit, activate, duplicate, and delete actions', async () => {
     let finish;
     getDietHistory.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
     renderDiets();
@@ -73,8 +82,10 @@ describe('DietsPage', () => {
     expect(screen.getByRole('link', { name: 'Editar versão 2' }).getAttribute('href'))
       .toBe('/admin/patients/patient-1/diets/diet-2/edit');
     expect(screen.getByRole('button', { name: 'Ativar versão 2' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Reativar versão 3' })).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /Ativar|Reativar versão/ })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Ativar versão 3' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /^Ativar versão/ })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /^Duplicar versão/ })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: /^Excluir versão/ })).toHaveLength(3);
   });
 
   it('reactivates an archived diet and archives the current active version', async () => {
@@ -89,7 +100,7 @@ describe('DietsPage', () => {
       previous_active_id: active.id,
     });
     renderDiets();
-    fireEvent.click(await screen.findByRole('button', { name: 'Reativar versão 3' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ativar versão 3' }));
 
     expect(confirm).toHaveBeenCalledWith(
       'Ativar a versão 3? A versão ativa atual será arquivada na mesma operação.',
@@ -175,5 +186,43 @@ describe('DietsPage', () => {
 
     const newDietLink = await screen.findByRole('link', { name: 'Nova dieta' });
     expect(newDietLink.getAttribute('href')).toBe('/admin/patients/patient-1/diet');
+  });
+
+  it('duplicates a diet as a draft and reloads the history', async () => {
+    const copy = { ...draft, id: 'diet-copy', version: 4 };
+    getDietHistory.mockResolvedValueOnce([active]).mockResolvedValueOnce([copy, active]);
+    duplicateDiet.mockResolvedValue(copy);
+    renderDiets();
+    fireEvent.click(await screen.findByRole('button', { name: 'Duplicar versão 1' }));
+
+    expect(duplicateDiet).toHaveBeenCalledWith('diet-1', { accessToken: 'admin-token' });
+    expect(await screen.findByRole('status')).toHaveProperty(
+      'textContent',
+      'Versão 4 criada como rascunho. Ative-a quando quiser disponibilizá-la ao paciente.',
+    );
+    expect(await screen.findByRole('heading', { name: 'Plano novo' })).toBeTruthy();
+    await waitFor(() => expect(getDietHistory).toHaveBeenCalledTimes(2));
+  });
+
+  it('confirms and deletes an active diet with an explicit warning', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    getDietHistory.mockResolvedValueOnce([active]).mockResolvedValueOnce([]);
+    deleteDiet.mockResolvedValue(undefined);
+    renderDiets();
+    fireEvent.click(await screen.findByRole('button', { name: 'Excluir versão 1' }));
+
+    expect(confirm).toHaveBeenCalledWith(
+      'Excluir permanentemente "Plano atual" (versão 1)? Esta ação não pode ser desfeita. Esta dieta está ativa e o paciente ficará sem uma dieta ativa.',
+    );
+    expect(deleteDiet).toHaveBeenCalledWith('diet-1', { accessToken: 'admin-token' });
+    expect(await screen.findByRole('heading', { name: 'Nenhuma dieta cadastrada' })).toBeTruthy();
+  });
+
+  it('does not delete a diet after cancellation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    getDietHistory.mockResolvedValue([active]);
+    renderDiets();
+    fireEvent.click(await screen.findByRole('button', { name: 'Excluir versão 1' }));
+    expect(deleteDiet).not.toHaveBeenCalled();
   });
 });

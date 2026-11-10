@@ -7,6 +7,8 @@ function apiErrorMessage(code, message) {
     DIET_LOOKUP_UNAVAILABLE: 'A dieta está temporariamente indisponível.',
     DIET_HISTORY_UNAVAILABLE: 'As dietas estão temporariamente indisponíveis.',
     DIET_ACTIVATION_UNAVAILABLE: 'Não foi possível confirmar a ativação. Atualize a página de dietas antes de tentar novamente.',
+    DIET_DUPLICATE_UNAVAILABLE: 'Não foi possível duplicar a dieta. Tente novamente.',
+    DIET_DELETE_UNAVAILABLE: 'Não foi possível excluir a dieta. Tente novamente.',
     PATIENT_NOT_FOUND: 'Paciente não encontrado.',
     FORBIDDEN: 'Você não tem permissão para editar dietas.',
     INVALID_DIET: 'Confira os dados da dieta e tente novamente.',
@@ -185,4 +187,71 @@ export async function activateDiet(
     throw new Error('O serviço retornou uma resposta inválida.');
   }
   return diet;
+}
+
+export async function duplicateDiet(
+  dietId,
+  { accessToken, fetchImpl = fetch } = {},
+) {
+  let response;
+  try {
+    response = await fetchImpl(`/api/diets/${encodeURIComponent(dietId)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    });
+  } catch {
+    throw new Error('Não foi possível conectar ao serviço. Tente novamente.');
+  }
+
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
+  if (!response.ok) {
+    throw new Error(apiErrorMessage(result?.error?.code, result?.error?.message));
+  }
+
+  const diet = result?.data?.diet;
+  if (
+    !diet ||
+    typeof diet.id !== 'string' ||
+    typeof diet.student_id !== 'string' ||
+    !Number.isInteger(diet.version) ||
+    diet.status !== 'DRAFT'
+  ) {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
+  return diet;
+}
+
+export async function deleteDiet(
+  dietId,
+  { accessToken, fetchImpl = fetch } = {},
+) {
+  let response;
+  try {
+    response = await fetchImpl(`/api/diets/${encodeURIComponent(dietId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    });
+  } catch {
+    throw new Error('Não foi possível conectar ao serviço. Tente novamente.');
+  }
+
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
+  if (!response.ok) {
+    throw new Error(apiErrorMessage(result?.error?.code, result?.error?.message));
+  }
+  if (result?.data?.id !== dietId) {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
 }

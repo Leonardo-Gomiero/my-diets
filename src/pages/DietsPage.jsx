@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FiArrowLeft, FiPlus, FiRefreshCw } from 'react-icons/fi';
+import { FiArrowLeft, FiCopy, FiPlus, FiRefreshCw, FiTrash2 } from 'react-icons/fi';
 import { Link, useParams } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { activateDiet, getDietHistory } from '../services/dietService.js';
+import {
+  activateDiet,
+  deleteDiet,
+  duplicateDiet,
+  getDietHistory,
+} from '../services/dietService.js';
 import './DietsPage.css';
 
 const STATUS_LABELS = {
@@ -28,7 +33,7 @@ export default function DietsPage() {
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activatingId, setActivatingId] = useState('');
+  const [processing, setProcessing] = useState(null);
   const [reloadCount, setReloadCount] = useState(0);
 
   const loadDiets = useCallback(async () => {
@@ -55,7 +60,7 @@ export default function DietsPage() {
       : `Ativar a versão ${diet.version}? Ela ficará disponível para o paciente.`;
     if (!window.confirm(confirmation)) return;
 
-    setActivatingId(diet.id);
+    setProcessing({ dietId: diet.id, action: 'activate' });
     setError('');
     setSuccess('');
     try {
@@ -68,7 +73,44 @@ export default function DietsPage() {
       await loadDiets();
       setError(activationError.message);
     } finally {
-      setActivatingId('');
+      setProcessing(null);
+    }
+  }
+
+  async function handleDuplicate(diet) {
+    setProcessing({ dietId: diet.id, action: 'duplicate' });
+    setError('');
+    setSuccess('');
+    try {
+      const copy = await duplicateDiet(diet.id, { accessToken });
+      setSuccess(`Versão ${copy.version} criada como rascunho. Ative-a quando quiser disponibilizá-la ao paciente.`);
+      setReloadCount((count) => count + 1);
+    } catch (duplicateError) {
+      setError(duplicateError.message);
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  async function handleDelete(diet) {
+    const activeWarning = diet.status === 'ACTIVE'
+      ? ' Esta dieta está ativa e o paciente ficará sem uma dieta ativa.'
+      : '';
+    if (!window.confirm(
+      `Excluir permanentemente "${diet.title}" (versão ${diet.version})? Esta ação não pode ser desfeita.${activeWarning}`,
+    )) return;
+
+    setProcessing({ dietId: diet.id, action: 'delete' });
+    setError('');
+    setSuccess('');
+    try {
+      await deleteDiet(diet.id, { accessToken });
+      setSuccess(`Versão ${diet.version} excluída.`);
+      setReloadCount((count) => count + 1);
+    } catch (deleteError) {
+      setError(deleteError.message);
+    } finally {
+      setProcessing(null);
     }
   }
 
@@ -142,27 +184,51 @@ export default function DietsPage() {
                   Versão {diet.version} <span aria-hidden="true">·</span> Criada em {formatDate(diet.created_at)}
                 </p>
               </div>
-              <Link
-                className="button button--quiet"
-                to={`/admin/patients/${encodeURIComponent(patientId)}/diets/${encodeURIComponent(diet.id)}/edit`}
-                aria-label={`Editar versão ${diet.version}`}
-              >
-                Editar
-              </Link>
-              {diet.status !== 'ACTIVE' && (
+              <div className="diets-page__actions">
+                <Link
+                  className="button button--quiet"
+                  to={`/admin/patients/${encodeURIComponent(patientId)}/diets/${encodeURIComponent(diet.id)}/edit`}
+                  aria-label={`Editar versão ${diet.version}`}
+                >
+                  Editar
+                </Link>
+                {diet.status !== 'ACTIVE' && (
+                  <Button
+                    type="button"
+                    onClick={() => handleActivate(diet)}
+                    disabled={Boolean(processing)}
+                    aria-label={`Ativar versão ${diet.version}`}
+                  >
+                    {processing?.dietId === diet.id && processing.action === 'activate'
+                      ? 'Ativando…'
+                      : 'Ativar'}
+                  </Button>
+                )}
                 <Button
                   type="button"
-                  onClick={() => handleActivate(diet)}
-                  disabled={Boolean(activatingId)}
-                  aria-label={`${diet.status === 'ARCHIVED' ? 'Reativar' : 'Ativar'} versão ${diet.version}`}
+                  variant="quiet"
+                  onClick={() => handleDuplicate(diet)}
+                  disabled={Boolean(processing)}
+                  aria-label={`Duplicar versão ${diet.version}`}
                 >
-                  {activatingId === diet.id
-                    ? 'Ativando…'
-                    : diet.status === 'ARCHIVED'
-                      ? 'Reativar versão'
-                      : 'Ativar'}
+                  <FiCopy aria-hidden="true" />
+                  {processing?.dietId === diet.id && processing.action === 'duplicate'
+                    ? 'Duplicando…'
+                    : 'Duplicar'}
                 </Button>
-              )}
+                <Button
+                  type="button"
+                  variant="quiet"
+                  onClick={() => handleDelete(diet)}
+                  disabled={Boolean(processing)}
+                  aria-label={`Excluir versão ${diet.version}`}
+                >
+                  <FiTrash2 aria-hidden="true" />
+                  {processing?.dietId === diet.id && processing.action === 'delete'
+                    ? 'Excluindo…'
+                    : 'Excluir'}
+                </Button>
+              </div>
             </li>
           ))}
         </ol>

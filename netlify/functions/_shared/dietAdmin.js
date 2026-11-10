@@ -450,6 +450,249 @@ export async function getDietForEdit(
   }
 }
 
+export async function duplicateDietForAdmin(
+  request,
+  {
+    authenticate = authenticateRequest,
+    createAdminClient = createServerSupabaseClient,
+  } = {},
+) {
+  if (request.method !== 'POST') {
+    return errorResponse(
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
+    );
+  }
+
+  try {
+    const context = requireAdmin(await authenticate(request));
+    const dietId = getId(request, 'id', 'INVALID_DIET_ID', 'dieta');
+    const client = createAdminClient();
+    let result;
+    try {
+      result = await client
+        .from('diets')
+        .select(`
+          id, student_id, title, version, status,
+          target_calories, target_protein, target_carbohydrates, target_fats, notes,
+          meals (
+            id, order_index, name, scheduled_time, target_calories, notes,
+            food_groups (
+              id, order_index, name,
+              food_options (
+                id, order_index, label, food_name, quantity, unit,
+                calories, protein, carbohydrates, fats, notes
+              )
+            )
+          )
+        `)
+        .eq('id', dietId)
+        .maybeSingle();
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_DUPLICATE_UNAVAILABLE',
+        'Não foi possível duplicar a dieta. Tente novamente.',
+      );
+    }
+
+    if (result.error) {
+      throw new HttpError(
+        503,
+        'DIET_DUPLICATE_UNAVAILABLE',
+        'Não foi possível duplicar a dieta. Tente novamente.',
+      );
+    }
+    if (!result.data) {
+      throw new HttpError(404, 'DIET_NOT_FOUND', 'Dieta não encontrada.');
+    }
+    await assertPatientOwnership(
+      client,
+      context.user.id,
+      result.data.student_id,
+      'DIET_DUPLICATE_UNAVAILABLE',
+      'Não foi possível duplicar a dieta. Tente novamente.',
+    );
+
+    const source = result.data;
+    if (typeof source.title !== 'string' || !Array.isArray(source.meals)) {
+      throw new HttpError(
+        503,
+        'DIET_DUPLICATE_UNAVAILABLE',
+        'Não foi possível confirmar os dados da dieta.',
+      );
+    }
+    const suffix = ' (cópia)';
+    const payload = {
+      title: `${Array.from(source.title).slice(0, 200 - suffix.length).join('').trimEnd()}${suffix}`,
+      target_calories: source.target_calories,
+      target_protein: source.target_protein,
+      target_carbohydrates: source.target_carbohydrates,
+      target_fats: source.target_fats,
+      notes: source.notes,
+      meals: ordered(source.meals).map((meal) => ({
+        name: meal.name,
+        scheduled_time: meal.scheduled_time,
+        target_calories: meal.target_calories,
+        notes: meal.notes,
+        food_groups: ordered(meal.food_groups).map((group) => ({
+          name: group.name,
+          options: ordered(group.food_options).map((option) => ({
+            label: option.label,
+            food_name: option.food_name,
+            quantity: option.quantity,
+            unit: option.unit,
+            calories: option.calories,
+            protein: option.protein,
+            carbohydrates: option.carbohydrates,
+            fats: option.fats,
+            notes: option.notes,
+          })),
+        })),
+      })),
+    };
+
+    let duplicateResult;
+    try {
+      duplicateResult = await client.rpc('save_draft_diet', {
+        p_student_id: source.student_id,
+        p_diet_id: null,
+        p_payload: payload,
+      });
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_DUPLICATE_UNAVAILABLE',
+        'Não foi possível duplicar a dieta. Tente novamente.',
+      );
+    }
+    if (duplicateResult.error) {
+      throw new HttpError(
+        503,
+        'DIET_DUPLICATE_UNAVAILABLE',
+        'Não foi possível duplicar a dieta. Tente novamente.',
+      );
+    }
+
+    const duplicate = duplicateResult.data;
+    if (
+      !isRecord(duplicate) ||
+      typeof duplicate.id !== 'string' ||
+      duplicate.student_id !== source.student_id ||
+      !Number.isInteger(duplicate.version)
+    ) {
+      throw new HttpError(
+        503,
+        'DIET_DUPLICATE_UNAVAILABLE',
+        'Não foi possível confirmar a duplicação da dieta.',
+      );
+    }
+
+    return jsonResponse(
+      201,
+      {
+        data: {
+          diet: {
+            id: duplicate.id,
+            student_id: duplicate.student_id,
+            version: duplicate.version,
+            status: 'DRAFT',
+          },
+        },
+      },
+      { 'Cache-Control': 'no-store, private' },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function deleteDietForAdmin(
+  request,
+  {
+    authenticate = authenticateRequest,
+    createAdminClient = createServerSupabaseClient,
+  } = {},
+) {
+  if (request.method !== 'DELETE') {
+    return errorResponse(
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
+    );
+  }
+
+  try {
+    const context = requireAdmin(await authenticate(request));
+    const dietId = getId(request, 'id', 'INVALID_DIET_ID', 'dieta');
+    const client = createAdminClient();
+    let dietResult;
+    try {
+      dietResult = await client
+        .from('diets')
+        .select('id, student_id')
+        .eq('id', dietId)
+        .maybeSingle();
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_DELETE_UNAVAILABLE',
+        'Não foi possível excluir a dieta. Tente novamente.',
+      );
+    }
+
+    if (dietResult.error) {
+      throw new HttpError(
+        503,
+        'DIET_DELETE_UNAVAILABLE',
+        'Não foi possível excluir a dieta. Tente novamente.',
+      );
+    }
+    if (!dietResult.data) {
+      throw new HttpError(404, 'DIET_NOT_FOUND', 'Dieta não encontrada.');
+    }
+    await assertPatientOwnership(
+      client,
+      context.user.id,
+      dietResult.data.student_id,
+      'DIET_DELETE_UNAVAILABLE',
+      'Não foi possível excluir a dieta. Tente novamente.',
+    );
+
+    let deleteResult;
+    try {
+      deleteResult = await client
+        .from('diets')
+        .delete()
+        .eq('id', dietId)
+        .eq('student_id', dietResult.data.student_id)
+        .select('id')
+        .maybeSingle();
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_DELETE_UNAVAILABLE',
+        'Não foi possível excluir a dieta. Tente novamente.',
+      );
+    }
+    if (deleteResult.error) {
+      throw new HttpError(
+        503,
+        'DIET_DELETE_UNAVAILABLE',
+        'Não foi possível excluir a dieta. Tente novamente.',
+      );
+    }
+    if (deleteResult.data?.id !== dietId) {
+      throw new HttpError(404, 'DIET_NOT_FOUND', 'Dieta não encontrada.');
+    }
+
+    return jsonResponse(
+      200,
+      { data: { id: dietId } },
+      { 'Cache-Control': 'no-store, private' },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
 export function createPatientDiet(request, dependencies = {}) {
   if (request.method === 'GET') {
     return getPatientDietHistory(request, dependencies);

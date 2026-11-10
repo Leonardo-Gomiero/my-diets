@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   activateDietDraft,
   createPatientDiet,
+  deleteDietForAdmin,
+  duplicateDietForAdmin,
   getDietForEdit,
   getPatientDietHistory,
   updateDietDraft,
@@ -126,6 +128,230 @@ function setup({
 }
 
 describe('draft diet endpoints', () => {
+  it('duplicates a complete diet as a new draft with ordered content', async () => {
+    const source = {
+      id: DIET_ID,
+      student_id: PATIENT_ID,
+      title: 'Plano semanal',
+      target_calories: 2000,
+      target_protein: 120,
+      target_carbohydrates: 220,
+      target_fats: 60,
+      notes: 'Observações gerais',
+      meals: [
+        {
+          order_index: 1,
+          name: 'Almoço',
+          scheduled_time: null,
+          target_calories: null,
+          notes: null,
+          food_groups: [
+            {
+              order_index: 0,
+              name: 'Carboidrato',
+              food_options: [
+                {
+                  order_index: 0,
+                  label: 'Opção A',
+                  food_name: 'Arroz',
+                  quantity: 100,
+                  unit: 'g',
+                  calories: null,
+                  protein: null,
+                  carbohydrates: null,
+                  fats: null,
+                  notes: null,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          order_index: 0,
+          name: 'Café da manhã',
+          scheduled_time: '08:00:00',
+          target_calories: 500,
+          notes: 'Leve',
+          food_groups: [
+            {
+              order_index: 0,
+              name: 'Proteína',
+              food_options: [
+                {
+                  order_index: 0,
+                  label: 'Opção A',
+                  food_name: 'Ovos',
+                  quantity: 2,
+                  unit: 'unidade',
+                  calories: 140,
+                  protein: 12,
+                  carbohydrates: 1,
+                  fats: 10,
+                  notes: null,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const dietQuery = {
+      select: vi.fn(() => dietQuery),
+      eq: vi.fn(() => dietQuery),
+      maybeSingle: vi.fn().mockResolvedValue({ data: source, error: null }),
+    };
+    const patientQuery = ownershipQuery({ id: PATIENT_ID });
+    const rpc = vi.fn().mockResolvedValue({
+      data: { id: 'new-diet-id', student_id: PATIENT_ID, version: 4 },
+      error: null,
+    });
+    const response = await duplicateDietForAdmin(
+      request(`/.netlify/functions/diet?id=${DIET_ID}`, undefined, 'POST'),
+      {
+        authenticate: vi.fn().mockResolvedValue(adminContext()),
+        createAdminClient: () => ({
+          rpc,
+          from: (table) => table === 'diets' ? dietQuery : patientQuery,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      data: {
+        diet: {
+          id: 'new-diet-id',
+          student_id: PATIENT_ID,
+          version: 4,
+          status: 'DRAFT',
+        },
+      },
+    });
+    expect(rpc).toHaveBeenCalledWith('save_draft_diet', {
+      p_student_id: PATIENT_ID,
+      p_diet_id: null,
+      p_payload: {
+        title: 'Plano semanal (cópia)',
+        target_calories: 2000,
+        target_protein: 120,
+        target_carbohydrates: 220,
+        target_fats: 60,
+        notes: 'Observações gerais',
+        meals: [
+          {
+            name: 'Café da manhã',
+            scheduled_time: '08:00:00',
+            target_calories: 500,
+            notes: 'Leve',
+            food_groups: [
+              {
+                name: 'Proteína',
+                options: [{
+                  label: 'Opção A',
+                  food_name: 'Ovos',
+                  quantity: 2,
+                  unit: 'unidade',
+                  calories: 140,
+                  protein: 12,
+                  carbohydrates: 1,
+                  fats: 10,
+                  notes: null,
+                }],
+              },
+            ],
+          },
+          {
+            name: 'Almoço',
+            scheduled_time: null,
+            target_calories: null,
+            notes: null,
+            food_groups: [
+              {
+                name: 'Carboidrato',
+                options: [{
+                  label: 'Opção A',
+                  food_name: 'Arroz',
+                  quantity: 100,
+                  unit: 'g',
+                  calories: null,
+                  protein: null,
+                  carbohydrates: null,
+                  fats: null,
+                  notes: null,
+                }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it('does not duplicate a diet assigned to another nutritionist', async () => {
+    const rpc = vi.fn();
+    const response = await duplicateDietForAdmin(
+      request(`/.netlify/functions/diet?id=${DIET_ID}`, undefined, 'POST'),
+      {
+        authenticate: vi.fn().mockResolvedValue(adminContext()),
+        createAdminClient: () => ({
+          rpc,
+          from: (table) => table === 'diets'
+            ? ownershipQuery({ student_id: PATIENT_ID })
+            : ownershipQuery(null),
+        }),
+      },
+    );
+    expect(response.status).toBe(404);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('deletes a diet only after checking its nutritionist ownership', async () => {
+    const dietQuery = {
+      select: vi.fn(() => dietQuery),
+      delete: vi.fn(() => dietQuery),
+      eq: vi.fn(() => dietQuery),
+      maybeSingle: vi.fn()
+        .mockResolvedValueOnce({
+          data: { id: DIET_ID, student_id: PATIENT_ID },
+          error: null,
+        })
+        .mockResolvedValueOnce({ data: { id: DIET_ID }, error: null }),
+    };
+    const patientQuery = ownershipQuery({ id: PATIENT_ID });
+    const response = await deleteDietForAdmin(
+      request(`/.netlify/functions/diet?id=${DIET_ID}`, undefined, 'DELETE'),
+      {
+        authenticate: vi.fn().mockResolvedValue(adminContext()),
+        createAdminClient: () => ({
+          from: (table) => table === 'diets' ? dietQuery : patientQuery,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ data: { id: DIET_ID } });
+    expect(dietQuery.delete).toHaveBeenCalledOnce();
+    expect(dietQuery.eq).toHaveBeenCalledWith('student_id', PATIENT_ID);
+  });
+
+  it('does not delete a diet assigned to another nutritionist', async () => {
+    const dietQuery = ownershipQuery({ student_id: PATIENT_ID });
+    dietQuery.delete = vi.fn();
+    const response = await deleteDietForAdmin(
+      request(`/.netlify/functions/diet?id=${DIET_ID}`, undefined, 'DELETE'),
+      {
+        authenticate: vi.fn().mockResolvedValue(adminContext()),
+        createAdminClient: () => ({
+          from: (table) => table === 'diets'
+            ? dietQuery
+            : ownershipQuery(null),
+        }),
+      },
+    );
+    expect(response.status).toBe(404);
+    expect(dietQuery.delete).not.toHaveBeenCalled();
+  });
+
   it('loads any existing diet for its assigned nutritionist', async () => {
     const diet = {
       id: DIET_ID,

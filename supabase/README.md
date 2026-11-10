@@ -135,7 +135,10 @@ The migrations add privileged PostgreSQL RPCs:
   same transaction and archives any previous active version. Editing a draft
   updates it without activation; editing an active or archived version creates
   a new draft version, leaving the source unchanged until the nutritionist
-  activates the new version manually.
+  activates the new version manually. The admin API also uses
+  `save_draft_diet` to duplicate a diet as a new, inactive draft; the source
+  remains unchanged. Diet deletion is restricted to the assigned nutritionist
+  and removes the diet tree through the existing cascading foreign keys.
 
 All three functions revoke execution from `PUBLIC`, `anon`, and `authenticated`
 and grant it only to `service_role`. The Netlify handlers first authenticate and
