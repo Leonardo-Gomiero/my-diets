@@ -428,8 +428,8 @@ export async function activateDietDraft(
       if (result.error.code === '55000') {
         throw new HttpError(
           409,
-          'DIET_NOT_DRAFT',
-          'Somente rascunhos deste paciente podem ser ativados.',
+          'DIET_NOT_ACTIVATABLE',
+          'Somente rascunhos ou dietas arquivadas deste paciente podem ser ativados.',
         );
       }
       throw new HttpError(

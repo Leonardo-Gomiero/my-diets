@@ -264,7 +264,7 @@ describe('draft diet endpoints', () => {
         expect(rpc).not.toHaveBeenCalled();
       });
 
-      it('does not report activation success when the RPC rejects a non-draft or foreign diet', async () => {
+      it('does not report activation success when the RPC rejects a non-activatable diet', async () => {
         const rpc = vi.fn().mockResolvedValue({
           data: null,
           error: { code: '55000', message: 'database details' },
@@ -283,7 +283,7 @@ describe('draft diet endpoints', () => {
 
         expect(response.status).toBe(409);
         const body = await response.json();
-        expect(body.error.code).toBe('DIET_NOT_DRAFT');
+        expect(body.error.code).toBe('DIET_NOT_ACTIVATABLE');
         expect(JSON.stringify(body)).not.toContain('database details');
         expect(rpc).toHaveBeenCalledOnce();
       });

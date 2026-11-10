@@ -1,6 +1,7 @@
 function apiErrorMessage(code, message) {
   const messages = {
     DIET_NOT_DRAFT: 'Somente rascunhos podem ser editados ou ativados.',
+    DIET_NOT_ACTIVATABLE: 'Somente rascunhos ou dietas arquivadas podem ser ativados.',
     DIET_NOT_FOUND: 'O rascunho não foi encontrado.',
     DIET_SAVE_UNAVAILABLE: 'Não foi possível salvar o rascunho. Tente novamente.',
     DIET_HISTORY_UNAVAILABLE: 'O histórico de dietas está temporariamente indisponível.',

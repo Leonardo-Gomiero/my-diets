@@ -122,6 +122,18 @@ describe('dietService', () => {
     );
   });
 
+  it('explains that archived diets can be reactivated', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      response(
+        { error: { code: 'DIET_NOT_ACTIVATABLE' } },
+        { ok: false, status: 409 },
+      ),
+    );
+    await expect(
+      activateDiet('patient-1', 'diet-1', { accessToken: 'token', fetchImpl }),
+    ).rejects.toThrow('Somente rascunhos ou dietas arquivadas podem ser ativados.');
+  });
+
   it('rejects activation results for a different patient or non-active status', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       response({ data: { diet: { ...diet, student_id: 'other-patient', status: 'ACTIVE' } } }),

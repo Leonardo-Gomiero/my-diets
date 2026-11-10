@@ -26,6 +26,13 @@ const draft = {
   status: 'DRAFT',
   created_at: '2026-02-02T10:00:00Z',
 };
+const archived = {
+  id: 'diet-3',
+  title: 'Plano arquivado',
+  version: 3,
+  status: 'ARCHIVED',
+  created_at: '2026-03-02T10:00:00Z',
+};
 
 function renderHistory() {
   return render(
@@ -49,17 +56,49 @@ afterEach(() => {
 });
 
 describe('DietHistoryPage', () => {
-  it('shows loading, status, version, and only allows draft activation', async () => {
+  it('shows loading, status, version, and allows draft or archived diet activation', async () => {
     let finish;
     getDietHistory.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
     renderHistory();
     expect(screen.getByRole('status').textContent).toContain('Carregando histórico');
-    finish([draft, active]);
+    finish([archived, draft, active]);
 
     expect(await screen.findByText('Rascunho')).toBeTruthy();
     expect(screen.getByText('Ativa')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Plano novo' })).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /Ativar versão/ })).toHaveLength(1);
+    expect(screen.getByText('Arquivada')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Ativar versão 2' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reativar versão 3' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Ativar|Reativar versão/ })).toHaveLength(2);
+  });
+
+  it('reactivates an archived diet and archives the current active version', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    getDietHistory.mockResolvedValueOnce([active, archived]).mockResolvedValueOnce([
+      { ...archived, status: 'ACTIVE' },
+      { ...active, status: 'ARCHIVED' },
+    ]);
+    activateDiet.mockResolvedValue({
+      ...archived,
+      status: 'ACTIVE',
+      previous_active_id: active.id,
+    });
+    renderHistory();
+    fireEvent.click(await screen.findByRole('button', { name: 'Reativar versão 3' }));
+
+    expect(confirm).toHaveBeenCalledWith(
+      'Ativar a versão 3? A versão ativa atual será arquivada na mesma operação.',
+    );
+    expect(activateDiet).toHaveBeenCalledWith(
+      'patient-1',
+      archived.id,
+      { accessToken: 'admin-token' },
+    );
+    expect(await screen.findByRole('status')).toHaveProperty(
+      'textContent',
+      'Versão 3 ativada. A versão anterior foi arquivada.',
+    );
+    expect(await screen.findByText('Arquivada')).toBeTruthy();
   });
 
   it('confirms activation, calls the API, and refreshes the active status', async () => {

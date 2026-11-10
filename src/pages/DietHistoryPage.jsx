@@ -82,7 +82,7 @@ export default function DietHistoryPage() {
         <div>
           <span className="eyebrow">ADMINISTRAÇÃO · VERSÕES</span>
           <h1 id="diet-history-title">Histórico de dietas</h1>
-          <p>Consulte as versões e escolha um rascunho para ativar.</p>
+          <p>Consulte as versões e escolha um rascunho ou uma dieta arquivada para ativar.</p>
         </div>
         <Link
           className="button button--primary diet-history__new"
@@ -142,14 +142,18 @@ export default function DietHistoryPage() {
                   Versão {diet.version} <span aria-hidden="true">·</span> Criada em {formatDate(diet.created_at)}
                 </p>
               </div>
-              {diet.status === 'DRAFT' && (
+              {diet.status !== 'ACTIVE' && (
                 <Button
                   type="button"
                   onClick={() => handleActivate(diet)}
                   disabled={Boolean(activatingId)}
-                  aria-label={`Ativar versão ${diet.version}`}
+                  aria-label={`${diet.status === 'ARCHIVED' ? 'Reativar' : 'Ativar'} versão ${diet.version}`}
                 >
-                  {activatingId === diet.id ? 'Ativando…' : 'Ativar rascunho'}
+                  {activatingId === diet.id
+                    ? 'Ativando…'
+                    : diet.status === 'ARCHIVED'
+                      ? 'Reativar versão'
+                      : 'Ativar rascunho'}
                 </Button>
               )}
             </li>
