@@ -137,7 +137,7 @@ Store numeric nutrition values in appropriate numeric/integer columns. Validate 
 1. `temporaryPassword.js` uses Node's cryptographic random source to create a strong temporary password.
 2. `student-credentials` requires a valid admin access token and validates the student operation.
 3. On creation, the function creates a Supabase Auth user and profile with role `STUDENT` and `must_change_password = true`.
-4. On reset, the function changes the existing user's Supabase Auth password and sets `must_change_password = true`.
+4. On reset, the function first sets and confirms `must_change_password = true`, then changes the existing user's Supabase Auth password, and verifies the forced-change state before returning the password. If the Auth update or final confirmation is uncertain, it returns an explicit error without revealing the password and leaves normal access blocked so the admin can safely retry.
 5. The plaintext password is included only in the successful create/reset response. It is not written to PostgreSQL, logs, analytics, or browser storage, and no later API can retrieve it.
 6. The UI shows the value only in the immediate result screen, with a copy action and a warning that closing the screen loses the value.
 7. Handle partial failure/rollback: if profile creation fails after Auth user creation, remove the orphaned Auth user; if a reset cannot update both Auth and profile state, return an explicit failure and leave the account in a safe, documented state.

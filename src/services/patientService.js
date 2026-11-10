@@ -19,6 +19,10 @@ const API_ERROR_MESSAGES = {
   PATIENT_LOOKUP_UNAVAILABLE:
     'Os dados do paciente estão temporariamente indisponíveis.',
   PATIENT_NOT_FOUND: 'Paciente não encontrado.',
+  PATIENT_PASSWORD_LOCK_FAILED:
+    'Não foi possível bloquear o acesso normal da conta. A senha não foi alterada.',
+  PATIENT_PASSWORD_RESET_PENDING:
+    'A conta está bloqueada para a troca de senha, mas a redefinição precisa ser confirmada. Tente redefinir novamente.',
   PATIENT_PROFILE_CREATION_FAILED:
     'Não foi possível concluir o cadastro. Tente novamente.',
   PATIENT_STATUS_UPDATE_UNAVAILABLE:
@@ -173,4 +177,26 @@ export async function updatePatientStatus(
     throw new Error('O serviço retornou uma resposta inválida.');
   }
   return result.patient;
+}
+
+export async function resetPatientPassword(
+  patientId,
+  { accessToken, fetchImpl = fetch } = {},
+) {
+  const result = await requestPatientApi(
+    `/api/patients/${encodeURIComponent(patientId)}/temporary-password`,
+    {
+      accessToken,
+      fetchImpl,
+      method: 'POST',
+    },
+  );
+  if (
+    !result.patient ||
+    typeof result.temporary_password !== 'string' ||
+    !result.temporary_password
+  ) {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
+  return result;
 }

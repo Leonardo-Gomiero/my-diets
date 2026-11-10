@@ -6,6 +6,7 @@ import {
   createPatient,
   getPatient,
   getPatients,
+  resetPatientPassword,
   updatePatient,
   updatePatientStatus,
 } from '../services/patientService.js';
@@ -19,6 +20,7 @@ vi.mock('../services/patientService.js', () => ({
   createPatient: vi.fn(),
   getPatient: vi.fn(),
   getPatients: vi.fn(),
+  resetPatientPassword: vi.fn(),
   updatePatient: vi.fn(),
   updatePatientStatus: vi.fn(),
 }));
@@ -36,6 +38,7 @@ beforeEach(() => {
   getPatient.mockReset();
   updatePatient.mockReset();
   updatePatientStatus.mockReset();
+  resetPatientPassword.mockReset();
   useAuth.mockReturnValue({
     session: { access_token: 'admin-access-token' },
   });
@@ -300,5 +303,59 @@ describe('PatientsPage', () => {
       'Não foi possível salvar.',
     );
     expect(screen.getByText('Ativo')).toBeTruthy();
+  });
+
+  it('confirms password reset and shows the new temporary password only once', async () => {
+    const clipboardWrite = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: clipboardWrite },
+    });
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    resetPatientPassword.mockResolvedValue({
+      patient: samplePatient,
+      temporary_password: 'rotated-one-time-password',
+    });
+    getPatients.mockResolvedValue([samplePatient]);
+    render(<PatientsPage />);
+
+    fireEvent.click(await screen.findByRole('button', {
+      name: 'Redefinir senha de Ana Exemplo',
+    }));
+
+    expect(confirm).toHaveBeenCalledWith(
+      expect.stringContaining('A senha atual deixará de funcionar'),
+    );
+    expect(resetPatientPassword).toHaveBeenCalledWith(
+      samplePatient.id,
+      { accessToken: 'admin-access-token' },
+    );
+    expect(await screen.findByRole('heading', { name: 'Senha redefinida' }))
+      .toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Senha temporária' }).textContent)
+      .toBe('rotated-one-time-password');
+    expect(screen.getByText(/Ao fechar esta tela, ela será descartada/))
+      .toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar senha' }));
+    await screen.findByText('Senha copiada.');
+    expect(clipboardWrite).toHaveBeenCalledWith('rotated-one-time-password');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar à lista' }));
+    expect(await screen.findByRole('heading', { name: 'Pacientes' })).toBeTruthy();
+    expect(screen.queryByText('rotated-one-time-password')).toBeNull();
+  });
+
+  it('does not call reset endpoint when confirmation is declined', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    getPatients.mockResolvedValue([samplePatient]);
+    render(<PatientsPage />);
+
+    fireEvent.click(await screen.findByRole('button', {
+      name: 'Redefinir senha de Ana Exemplo',
+    }));
+
+    expect(resetPatientPassword).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeTruthy();
   });
 });

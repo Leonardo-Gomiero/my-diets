@@ -6,6 +6,7 @@ import {
   createPatient,
   getPatient,
   getPatients,
+  resetPatientPassword,
   updatePatient,
   updatePatientStatus,
 } from '../services/patientService.js';
@@ -287,7 +288,7 @@ function PatientEditForm({ patient, accessToken, onCancel, onSaved }) {
   );
 }
 
-function TemporaryPassword({ patient, password, onClose }) {
+function TemporaryPassword({ patient, password, onClose, isReset = false }) {
   const [copyMessage, setCopyMessage] = useState('');
 
   async function copyPassword() {
@@ -306,13 +307,16 @@ function TemporaryPassword({ patient, password, onClose }) {
         <FiUsers />
       </span>
       <span className="eyebrow patients-eyebrow">ACESSO CRIADO</span>
-      <h1 id="password-result-title">Cadastro concluído</h1>
+      <h1 id="password-result-title">
+        {isReset ? 'Senha redefinida' : 'Cadastro concluído'}
+      </h1>
       <p className="password-result__patient">
         A senha temporária de <strong>{patient.full_name}</strong> só aparece nesta tela.
       </p>
       <div className="password-result__warning" role="note">
-        Anote ou compartilhe esta senha agora. Ao sair desta tela, ela será descartada e
-        não poderá ser consultada novamente.
+        {isReset
+          ? 'Anote ou compartilhe esta senha agora. Ao fechar esta tela, ela será descartada e não poderá ser consultada novamente.'
+          : 'Anote ou compartilhe esta senha agora. Ao sair desta tela, ela será descartada e não poderá ser consultada novamente.'}
       </div>
       <div className="password-result__credential">
         <span>Senha temporária</span>
@@ -348,6 +352,7 @@ export default function PatientsPage() {
   const [view, setView] = useState('list');
   const [createdPatient, setCreatedPatient] = useState(null);
   const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [passwordIsReset, setPasswordIsReset] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [detailError, setDetailError] = useState('');
   const [statusError, setStatusError] = useState('');
@@ -386,14 +391,40 @@ export default function PatientsPage() {
   function handleCreated(result) {
     setCreatedPatient(result.patient);
     setTemporaryPassword(result.temporary_password);
+    setPasswordIsReset(false);
     setView('password');
   }
 
   function discardTemporaryPassword() {
     setTemporaryPassword('');
     setCreatedPatient(null);
+    setPasswordIsReset(false);
     setView('list');
     setReloadCount((count) => count + 1);
+  }
+
+  async function handlePasswordReset(patient) {
+    if (
+      !window.confirm(
+        `Redefinir a senha de ${patient.full_name}? A senha atual deixará de funcionar e o próximo acesso exigirá a criação de uma nova senha.`,
+      )
+    ) {
+      return;
+    }
+
+    setChangingStatusId(patient.id);
+    setStatusError('');
+    try {
+      const result = await resetPatientPassword(patient.id, { accessToken });
+      setCreatedPatient(result.patient);
+      setTemporaryPassword(result.temporary_password);
+      setPasswordIsReset(true);
+      setView('password');
+    } catch (error) {
+      setStatusError(error.message);
+    } finally {
+      setChangingStatusId('');
+    }
   }
 
   async function openPatient(patient) {
@@ -457,6 +488,7 @@ export default function PatientsPage() {
       <TemporaryPassword
         patient={createdPatient}
         password={temporaryPassword}
+        isReset={passwordIsReset}
         onClose={discardTemporaryPassword}
       />
     );
@@ -627,6 +659,17 @@ export default function PatientsPage() {
                         : patient.is_active
                           ? 'Desativar'
                           : 'Ativar'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="quiet"
+                      onClick={() => handlePasswordReset(patient)}
+                      disabled={changingStatusId === patient.id || !patient.is_active}
+                      aria-label={`Redefinir senha de ${patient.full_name}`}
+                    >
+                      {changingStatusId === patient.id
+                        ? 'Aguarde…'
+                        : 'Redefinir senha'}
                     </Button>
                   </td>
                 </tr>

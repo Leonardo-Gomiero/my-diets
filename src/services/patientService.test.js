@@ -3,6 +3,7 @@ import {
   createPatient,
   getPatient,
   getPatients,
+  resetPatientPassword,
   updatePatient,
   updatePatientStatus,
 } from './patientService.js';
@@ -144,6 +145,36 @@ describe('patientService', () => {
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({ is_active: false }),
+      }),
+    );
+  });
+
+  it('uses the authenticated temporary-password reset endpoint', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      response({
+        data: {
+          patient: { id: 'patient-1', is_active: true },
+          temporary_password: 'one-time-password',
+        },
+      }),
+    );
+
+    await expect(
+      resetPatientPassword('patient-1', {
+        accessToken: 'admin-token',
+        fetchImpl,
+      }),
+    ).resolves.toMatchObject({
+      patient: { id: 'patient-1', is_active: true },
+      temporary_password: 'one-time-password',
+    });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/patients/patient-1/temporary-password',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer admin-token' },
+        cache: 'no-store',
       }),
     );
   });

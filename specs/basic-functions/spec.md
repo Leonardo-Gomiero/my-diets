@@ -68,7 +68,7 @@ The nutritionist is responsible for entering the correct email address. Student 
 
 - A student with `must_change_password = true` may access only the password-change flow and sign-out.
 - A successful password change updates the Supabase Auth password and clears the profile flag. Access to the diet is granted only after both operations succeed.
-- A nutritionist reset immediately replaces the existing password, sets `must_change_password = true`, and returns the new temporary password once.
+- A nutritionist reset first blocks normal access, replaces the existing password in Supabase Auth, verifies `must_change_password = true`, and returns the new temporary password once. If any step after the access lock is uncertain, the server must not reveal the password and must leave the account blocked for a safe retry.
 - A reset password is never recoverable from the application after the one-time response. If the nutritionist loses it, they must reset it again.
 - Students have no self-service password-reset flow in this release.
 - The nutritionist's own account is provisioned and recovered operationally through Supabase Auth; the application must not ship a shared or hard-coded admin credential.

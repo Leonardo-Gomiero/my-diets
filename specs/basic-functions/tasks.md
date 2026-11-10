@@ -15,8 +15,8 @@
 - [ ] **BE-03**: Connect the frontend login/logout flow to Supabase Auth and load the application profile.
 - [ ] **BE-04**: Implement the forced password-change flow; block all other application data access until the password and profile flag are updated successfully.
 - [ ] **BE-05**: Implement cryptographically secure temporary-password generation.
-- [ ] **BE-06**: Implement admin-only patient creation and temporary-password rotation; return the password once, enforce `must_change_password`, and handle partial failures/orphaned users safely.
-- [ ] **BE-07**: Add tests proving temporary passwords are not persisted, logged, or returned by subsequent reads.
+- [x] **BE-06**: Implement admin-only patient creation and temporary-password rotation; return the password once, enforce `must_change_password`, and handle partial failures/orphaned users safely.
+- [x] **BE-07**: Add tests proving temporary passwords are not persisted, logged, or returned by subsequent reads.
 
 ## Phase 3: Shared Frontend Foundation
 
@@ -47,7 +47,7 @@
 ## Phase 6: Integration and Release Readiness
 
 - [ ] **QA-01**: End-to-end test: nutritionist creates a student, shares the one-time password, student changes it, and student sees only their own active diet.
-- [ ] **QA-02**: End-to-end test: nutritionist resets a password; the prior password no longer works and the new password requires a change.
+- [ ] **QA-02**: End-to-end test against a disposable Supabase project: nutritionist resets a password; the prior password no longer works and the new password requires a change.
 - [ ] **QA-03**: Verify unauthorized roles, inactive accounts, forced-change sessions, and cross-student access are rejected by the API and RLS.
 - [ ] **QA-04**: Verify the student experience at 320px and desktop widths and check WCAG AA contrast/focus behavior.
 - [ ] **QA-05**: Run the production build and test environment variables, redirects, migrations, and Functions in a Netlify preview.

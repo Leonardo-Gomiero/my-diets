@@ -1,6 +1,7 @@
 import { authenticateRequest, requireAdmin } from './auth.js';
 import { errorResponse, HttpError, jsonResponse } from './http.js';
 import { createServerSupabaseClient } from './supabase.js';
+import { generateTemporaryPassword } from './temporaryPassword.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PATIENT_ID_PATTERN =
@@ -413,6 +414,128 @@ export async function updatePatientStatus(
     return jsonResponse(
       200,
       { data: { patient: { id: profile.id, is_active: body.is_active } } },
+      { 'Cache-Control': 'no-store, private' },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function resetPatientPassword(
+  request,
+  {
+    authenticate = authenticateRequest,
+    createAdminClient = createServerSupabaseClient,
+    createPassword = generateTemporaryPassword,
+  } = {},
+) {
+  if (request.method !== 'POST') {
+    return errorResponse(
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
+    );
+  }
+
+  try {
+    requireAdmin(await authenticate(request));
+    const patientId = getPatientId(request);
+    const client = createAdminClient();
+    const profile = await getPatientRecord(client, patientId);
+    if (profile.is_active !== true) {
+      throw new HttpError(403, 'ACCOUNT_INACTIVE', 'Não é possível redefinir a senha de uma conta inativa.');
+    }
+
+    const authUser = await getAuthUser(client, patientId);
+    const temporaryPassword = createPassword();
+
+    let lockResult;
+    try {
+      lockResult = await client
+        .from('profiles')
+        .update({ must_change_password: true })
+        .eq('id', patientId)
+        .eq('role', 'STUDENT')
+        .eq('is_active', true)
+        .select('id, must_change_password')
+        .maybeSingle();
+    } catch {
+      throw new HttpError(
+        503,
+        'PATIENT_PASSWORD_LOCK_FAILED',
+        'Não foi possível bloquear o acesso normal da conta. A senha não foi alterada.',
+      );
+    }
+
+    if (
+      lockResult.error ||
+      lockResult.data?.id !== patientId ||
+      lockResult.data.must_change_password !== true
+    ) {
+      throw new HttpError(
+        503,
+        'PATIENT_PASSWORD_LOCK_FAILED',
+        'Não foi possível bloquear o acesso normal da conta. A senha não foi alterada.',
+      );
+    }
+
+    let authResult;
+    try {
+      authResult = await client.auth.admin.updateUserById(patientId, {
+        password: temporaryPassword,
+      });
+    } catch {
+      throw new HttpError(
+        503,
+        'PATIENT_PASSWORD_RESET_PENDING',
+        'A conta está bloqueada para a troca de senha, mas a redefinição não foi confirmada. Tente redefinir novamente.',
+      );
+    }
+
+    if (authResult.error) {
+      throw new HttpError(
+        503,
+        'PATIENT_PASSWORD_RESET_PENDING',
+        'A conta está bloqueada para a troca de senha, mas a redefinição não foi confirmada. Tente redefinir novamente.',
+      );
+    }
+
+    let confirmation;
+    try {
+      confirmation = await client
+        .from('profiles')
+        .select('id, role, is_active, must_change_password')
+        .eq('id', patientId)
+        .maybeSingle();
+    } catch {
+      confirmation = { error: true };
+    }
+
+    if (
+      confirmation.error ||
+      confirmation.data?.id !== patientId ||
+      confirmation.data.role !== 'STUDENT' ||
+      confirmation.data.is_active !== true ||
+      confirmation.data.must_change_password !== true
+    ) {
+      throw new HttpError(
+        503,
+        'PATIENT_PASSWORD_RESET_PENDING',
+        'A senha foi atualizada, mas não foi possível confirmar o estado de troca obrigatória. A conta permanece bloqueada; redefina a senha novamente.',
+      );
+    }
+
+    return jsonResponse(
+      200,
+      {
+        data: {
+          patient: {
+            id: patientId,
+            full_name: profile.full_name,
+            email: authResult.data?.user?.email ?? authUser.email,
+            is_active: true,
+          },
+          temporary_password: temporaryPassword,
+        },
+      },
       { 'Cache-Control': 'no-store, private' },
     );
   } catch (error) {
