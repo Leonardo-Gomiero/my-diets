@@ -639,6 +639,24 @@ export default function PatientsPage() {
                     </span>
                   </td>
                   <td className="patient-actions" data-label="Ações">
+                    {patient.is_active ? (
+                      <a
+                        className="button button--quiet"
+                        href={`/admin/patients/${encodeURIComponent(patient.id)}/diet`}
+                        aria-label={`Criar dieta para ${patient.full_name}`}
+                      >
+                        Nova dieta
+                      </a>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="quiet"
+                        disabled
+                        aria-label={`Criar dieta para ${patient.full_name}`}
+                      >
+                        Nova dieta
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       variant="quiet"

@@ -36,6 +36,7 @@ src/
 ├── layouts/
 ├── pages/
 │   ├── admin/
+│   │   └── DietEditorPage.jsx
 │   ├── student/
 │   └── auth/
 ├── services/
@@ -178,6 +179,7 @@ Draft creation and updates validate the complete nested payload in the Function 
 - Place request code in `src/services/`; centralize API errors and bearer-token attachment in `apiClient.js`.
 - The admin area needs a patient list/form and a diet editor. The student area needs a read-only active diet page.
 - Meal editing must support add/remove/reorder operations and food options A/B/C without exposing clinical guidance or auto-generated recommendations.
+- The current draft editor creates a draft and can update it during the same editor session. Resuming an already-saved draft after leaving/reloading requires the planned `GET /api/diets/:id` read endpoint; it is not part of the current draft-write API.
 - Keep all feedback visible and accessible; never treat an API error as an empty successful result.
 - Language and date/number formatting use `pt-BR`.
 

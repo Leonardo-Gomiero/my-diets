@@ -160,6 +160,10 @@
   padding: 0 10px;
 }
 
+.patient-actions a {
+  text-decoration: none;
+}
+
 .patients-alert--page {
   margin-bottom: 16px;
 }
