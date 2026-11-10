@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createPatientDiet, updateDietDraft } from './_shared/dietAdmin.js';
+import {
+  activateDietDraft,
+  createPatientDiet,
+  getPatientDietHistory,
+  updateDietDraft,
+} from './_shared/dietAdmin.js';
 import { HttpError } from './_shared/http.js';
 
 const PATIENT_ID = '123e4567-e89b-42d3-a456-426614174000';
@@ -128,6 +133,206 @@ describe('draft diet endpoints', () => {
       p_diet_id: null,
       p_payload: dietPayload(),
     });
+  });
+
+  describe('diet history and activation endpoints', () => {
+      it('returns only the selected patient diet history, ordered by version', async () => {
+        const patientQuery = {
+          select: vi.fn(() => patientQuery),
+          eq: vi.fn(() => patientQuery),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { id: PATIENT_ID, role: 'STUDENT' },
+            error: null,
+          }),
+        };
+        const history = [
+          { id: 'diet-2', title: 'Plano atualizado', version: 2, status: 'DRAFT' },
+          { id: 'diet-1', title: 'Plano anterior', version: 1, status: 'ACTIVE' },
+        ];
+        const dietsQuery = {
+          select: vi.fn(() => dietsQuery),
+          eq: vi.fn(() => dietsQuery),
+          order: vi.fn().mockResolvedValue({ data: history, error: null }),
+        };
+        const from = vi.fn((table) => table === 'profiles' ? patientQuery : dietsQuery);
+        const response = await getPatientDietHistory(
+          request(`/.netlify/functions/patient-diets?id=${PATIENT_ID}`, undefined, 'GET'),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext()),
+            createAdminClient: () => ({ from }),
+          },
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get('cache-control')).toBe('no-store, private');
+        await expect(response.json()).resolves.toEqual({ data: { diets: history } });
+        expect(patientQuery.eq).toHaveBeenCalledWith('id', PATIENT_ID);
+        expect(dietsQuery.eq).toHaveBeenCalledWith('student_id', PATIENT_ID);
+        expect(dietsQuery.order).toHaveBeenCalledWith('version', { ascending: false });
+      });
+
+      it('requires an admin and a student profile for history reads', async () => {
+        const createAdminClient = vi.fn();
+        const denied = await getPatientDietHistory(
+          request(`/.netlify/functions/patient-diets?id=${PATIENT_ID}`, undefined, 'GET'),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext('STUDENT')),
+            createAdminClient,
+          },
+        );
+        expect(denied.status).toBe(403);
+        expect(createAdminClient).not.toHaveBeenCalled();
+
+        const missingPatient = await getPatientDietHistory(
+          request(`/.netlify/functions/patient-diets?id=${PATIENT_ID}`, undefined, 'GET'),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext()),
+            createAdminClient: () => ({
+              from: () => ({
+                select: () => ({
+                  eq: () => ({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: { id: PATIENT_ID, role: 'ADMIN' },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          },
+        );
+        expect(missingPatient.status).toBe(404);
+      });
+
+      it('activates a draft through the single atomic activation RPC', async () => {
+        const rpc = vi.fn().mockResolvedValue({
+          data: {
+            id: DIET_ID,
+            student_id: PATIENT_ID,
+            version: 3,
+            status: 'ACTIVE',
+            previous_active_id: 'old-active-id',
+          },
+          error: null,
+        });
+        const response = await activateDietDraft(
+          request(
+            `/.netlify/functions/patient-diet-activate?studentId=${PATIENT_ID}&dietId=${DIET_ID}`,
+            undefined,
+            'POST',
+          ),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext()),
+            createAdminClient: () => ({ rpc }),
+          },
+        );
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+          data: {
+            diet: {
+              id: DIET_ID,
+              student_id: PATIENT_ID,
+              version: 3,
+              status: 'ACTIVE',
+              previous_active_id: 'old-active-id',
+            },
+          },
+        });
+        expect(rpc).toHaveBeenCalledOnce();
+        expect(rpc).toHaveBeenCalledWith('activate_draft_diet', {
+          p_student_id: PATIENT_ID,
+          p_diet_id: DIET_ID,
+        });
+      });
+
+      it('rejects non-admin callers before invoking the activation RPC', async () => {
+        const rpc = vi.fn();
+        const response = await activateDietDraft(
+          request(
+            `/.netlify/functions/patient-diet-activate?studentId=${PATIENT_ID}&dietId=${DIET_ID}`,
+            undefined,
+            'POST',
+          ),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext('STUDENT')),
+            createAdminClient: () => ({ rpc }),
+          },
+        );
+
+        expect(response.status).toBe(403);
+        expect(rpc).not.toHaveBeenCalled();
+      });
+
+      it('does not report activation success when the RPC rejects a non-draft or foreign diet', async () => {
+        const rpc = vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: '55000', message: 'database details' },
+        });
+        const response = await activateDietDraft(
+          request(
+            `/.netlify/functions/patient-diet-activate?studentId=${PATIENT_ID}&dietId=${DIET_ID}`,
+            undefined,
+            'POST',
+          ),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext()),
+            createAdminClient: () => ({ rpc }),
+          },
+        );
+
+        expect(response.status).toBe(409);
+        const body = await response.json();
+        expect(body.error.code).toBe('DIET_NOT_DRAFT');
+        expect(JSON.stringify(body)).not.toContain('database details');
+        expect(rpc).toHaveBeenCalledOnce();
+      });
+
+      it('returns not found when the draft does not belong to the requested patient', async () => {
+        const rpc = vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'P0002', message: 'internal ownership detail' },
+        });
+        const response = await activateDietDraft(
+          request(
+            `/.netlify/functions/patient-diet-activate?studentId=${PATIENT_ID}&dietId=${DIET_ID}`,
+            undefined,
+            'POST',
+          ),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext()),
+            createAdminClient: () => ({ rpc }),
+          },
+        );
+
+        expect(response.status).toBe(404);
+        const body = await response.json();
+        expect(body.error.code).toBe('DIET_NOT_FOUND');
+        expect(JSON.stringify(body)).not.toContain('internal ownership detail');
+      });
+
+      it('preserves generic failures as explicit safe activation errors', async () => {
+        const rpc = vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'XX000', message: 'private database information' },
+        });
+        const response = await activateDietDraft(
+          request(
+            `/.netlify/functions/patient-diet-activate?studentId=${PATIENT_ID}&dietId=${DIET_ID}`,
+            undefined,
+            'POST',
+          ),
+          {
+            authenticate: vi.fn().mockResolvedValue(adminContext()),
+            createAdminClient: () => ({ rpc }),
+          },
+        );
+
+        expect(response.status).toBe(503);
+        const body = await response.json();
+        expect(body.error.message).toContain('confirmar a ativação');
+        expect(JSON.stringify(body)).not.toContain('private database information');
+      });
   });
 
   it('updates only via the draft-saving RPC and retains nested array ordering', async () => {

@@ -282,12 +282,102 @@ async function saveDraft(request, operation, dependencies) {
 }
 
 export function createPatientDiet(request, dependencies = {}) {
+  if (request.method === 'GET') {
+    return getPatientDietHistory(request, dependencies);
+  }
   if (request.method !== 'POST') {
     return errorResponse(
       new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
     );
   }
   return saveDraft(request, 'create', dependencies);
+}
+
+export async function getPatientDietHistory(
+  request,
+  {
+    authenticate = authenticateRequest,
+    createAdminClient = createServerSupabaseClient,
+  } = {},
+) {
+  if (request.method !== 'GET') {
+    return errorResponse(
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
+    );
+  }
+
+  try {
+    requireAdmin(await authenticate(request));
+    const patientId = getId(request, 'id', 'INVALID_PATIENT_ID', 'paciente');
+    const client = createAdminClient();
+
+    let profileResult;
+    try {
+      profileResult = await client
+        .from('profiles')
+        .select('id, role')
+        .eq('id', patientId)
+        .maybeSingle();
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_HISTORY_UNAVAILABLE',
+        'O histórico de dietas está temporariamente indisponível.',
+      );
+    }
+
+    if (profileResult.error) {
+      throw new HttpError(
+        503,
+        'DIET_HISTORY_UNAVAILABLE',
+        'O histórico de dietas está temporariamente indisponível.',
+      );
+    }
+    if (profileResult.data?.id !== patientId || profileResult.data.role !== 'STUDENT') {
+      throw new HttpError(404, 'PATIENT_NOT_FOUND', 'Paciente não encontrado.');
+    }
+
+    let dietsResult;
+    try {
+      dietsResult = await client
+        .from('diets')
+        .select('id, title, version, status, created_at, updated_at')
+        .eq('student_id', patientId)
+        .order('version', { ascending: false });
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_HISTORY_UNAVAILABLE',
+        'O histórico de dietas está temporariamente indisponível.',
+      );
+    }
+    if (dietsResult.error || !Array.isArray(dietsResult.data)) {
+      throw new HttpError(
+        503,
+        'DIET_HISTORY_UNAVAILABLE',
+        'O histórico de dietas está temporariamente indisponível.',
+      );
+    }
+
+    return jsonResponse(
+      200,
+      {
+        data: {
+          diets: dietsResult.data.map((diet) => ({
+            id: diet.id,
+            title: diet.title,
+            version: diet.version,
+            status: diet.status,
+            created_at: diet.created_at,
+            updated_at: diet.updated_at,
+          })),
+        },
+      },
+      { 'Cache-Control': 'no-store, private' },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export function updateDietDraft(request, dependencies = {}) {
@@ -297,4 +387,88 @@ export function updateDietDraft(request, dependencies = {}) {
     );
   }
   return saveDraft(request, 'update', dependencies);
+}
+
+export async function activateDietDraft(
+  request,
+  {
+    authenticate = authenticateRequest,
+    createAdminClient = createServerSupabaseClient,
+  } = {},
+) {
+  if (request.method !== 'POST') {
+    return errorResponse(
+      new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.'),
+    );
+  }
+
+  try {
+    requireAdmin(await authenticate(request));
+    const studentId = getId(request, 'studentId', 'INVALID_PATIENT_ID', 'paciente');
+    const dietId = getId(request, 'dietId', 'INVALID_DIET_ID', 'dieta');
+
+    let result;
+    try {
+      result = await createAdminClient().rpc('activate_draft_diet', {
+        p_student_id: studentId,
+        p_diet_id: dietId,
+      });
+    } catch {
+      throw new HttpError(
+        503,
+        'DIET_ACTIVATION_UNAVAILABLE',
+        'Não foi possível confirmar a ativação. Atualize o histórico antes de tentar novamente.',
+      );
+    }
+
+    if (result.error) {
+      if (result.error.code === 'P0002') {
+        throw new HttpError(404, 'DIET_NOT_FOUND', 'Paciente ou dieta não encontrado.');
+      }
+      if (result.error.code === '55000') {
+        throw new HttpError(
+          409,
+          'DIET_NOT_DRAFT',
+          'Somente rascunhos deste paciente podem ser ativados.',
+        );
+      }
+      throw new HttpError(
+        503,
+        'DIET_ACTIVATION_UNAVAILABLE',
+        'Não foi possível confirmar a ativação. Atualize o histórico antes de tentar novamente.',
+      );
+    }
+
+    if (
+      !result.data ||
+      result.data.id !== dietId ||
+      result.data.student_id !== studentId ||
+      result.data.status !== 'ACTIVE' ||
+      !Number.isInteger(result.data.version)
+    ) {
+      throw new HttpError(
+        503,
+        'DIET_ACTIVATION_UNAVAILABLE',
+        'Não foi possível confirmar a ativação. Atualize o histórico.',
+      );
+    }
+
+    return jsonResponse(
+      200,
+      {
+        data: {
+          diet: {
+            id: result.data.id,
+            student_id: result.data.student_id,
+            version: result.data.version,
+            status: result.data.status,
+            previous_active_id: result.data.previous_active_id ?? null,
+          },
+        },
+      },
+      { 'Cache-Control': 'no-store, private' },
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

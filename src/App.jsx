@@ -6,6 +6,7 @@ import MainLayout from './layouts/MainLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import PatientsPage from './pages/PatientsPage.jsx';
 import DietEditorPage from './pages/DietEditorPage.jsx';
+import DietHistoryPage from './pages/DietHistoryPage.jsx';
 import Login from './pages/Login.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -42,6 +43,14 @@ function AppRoutes() {
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/change-password" element={<PasswordChangeRoute />} />
       <Route element={<ProtectedRoute allowedRole="ADMIN" />}>
+        <Route
+          path="/admin/patients/:patientId/diets"
+          element={
+            <MainLayout>
+              <DietHistoryPage />
+            </MainLayout>
+          }
+        />
         <Route
           path="/admin/patients/:patientId/diet"
           element={

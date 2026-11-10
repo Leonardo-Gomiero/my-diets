@@ -105,6 +105,8 @@ Each diet belongs to exactly one student and contains:
 
 Only one diet per student may be active at a time. Activating a draft archives the previously active version in the same operation. Draft edits do not change the student's current active diet. An active diet must be copied into a new draft/version before the nutritionist makes changes that should not immediately affect the student.
 
+Activation must verify that the selected draft belongs to the expected student. Archiving the prior active version and activating the selected draft are one database transaction; on any failure both changes roll back and the prior active version remains active.
+
 ### Meals and food options
 
 - A diet has one or more ordered meals.

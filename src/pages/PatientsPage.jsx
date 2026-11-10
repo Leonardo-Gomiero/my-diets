@@ -657,6 +657,13 @@ export default function PatientsPage() {
                         Nova dieta
                       </Button>
                     )}
+                    <a
+                      className="button button--quiet"
+                      href={`/admin/patients/${encodeURIComponent(patient.id)}/diets`}
+                      aria-label={`Histórico de dietas de ${patient.full_name}`}
+                    >
+                      Histórico
+                    </a>
                     <Button
                       type="button"
                       variant="quiet"

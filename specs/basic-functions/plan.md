@@ -171,6 +171,8 @@ For each request, derive identity from the verified Supabase token. Never trust 
 
 Draft creation and updates validate the complete nested payload in the Function and persist the diet tree through one PostgreSQL RPC transaction. Array order determines meal, group, and option ordering. Limits are 20 meals per diet, 20 groups per meal, 10 options per group, and 200 options per diet; every meal and group must contain at least one child. The RPC is executable only by `service_role`; the Function requires an active `ADMIN` before invoking it. Updates lock the diet row and reject any status other than `DRAFT`, so an active diet cannot be overwritten by a draft edit.
 
+The admin history endpoint returns versions for the requested student only. Activation verifies the selected draft belongs to that student, serializes activations by locking the student profile, then archives the prior active diet and activates the draft inside one PostgreSQL transaction. If either update fails, the transaction rolls back both changes. The partial unique index remains a final database invariant allowing at most one active diet per student.
+
 ## 7. Frontend Architecture
 
 - Keep route definitions and session provider in `src/App.jsx` and `src/context/`.
@@ -180,6 +182,7 @@ Draft creation and updates validate the complete nested payload in the Function 
 - The admin area needs a patient list/form and a diet editor. The student area needs a read-only active diet page.
 - Meal editing must support add/remove/reorder operations and food options A/B/C without exposing clinical guidance or auto-generated recommendations.
 - The current draft editor creates a draft and can update it during the same editor session. Resuming an already-saved draft after leaving/reloading requires the planned `GET /api/diets/:id` read endpoint; it is not part of the current draft-write API.
+- The nutritionist can review patient diet versions and activate an eligible draft. The activation RPC serializes transitions for each student and archives the prior active version in the same transaction.
 - Keep all feedback visible and accessible; never treat an API error as an empty successful result.
 - Language and date/number formatting use `pt-BR`.
 

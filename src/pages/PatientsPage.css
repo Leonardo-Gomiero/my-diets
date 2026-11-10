@@ -161,6 +161,14 @@
 }
 
 .patient-actions a {
+  align-items: center;
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  display: inline-flex;
+  font-weight: 650;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 10px;
   text-decoration: none;
 }
 
