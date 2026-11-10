@@ -125,6 +125,7 @@ Nutrition values are entered and displayed as provided. The MVP does not calcula
 - If no active diet exists, show a clear empty state asking the student to contact their nutritionist.
 - Loading and API failures must have visible feedback and a retry path where retry is safe.
 - Data requests must be scoped to the authenticated student on the server/database, not merely filtered in the UI.
+- The active-diet API accepts no student identifier from the caller. It returns only the authenticated student's active diet tree, and requires an active account with the mandatory password change complete. Student diet screens are read-only and include loading, recoverable error, and no-active-diet states.
 
 ## 7. Security and Non-Functional Requirements
 

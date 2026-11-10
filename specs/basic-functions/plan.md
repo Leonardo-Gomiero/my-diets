@@ -183,6 +183,7 @@ The admin history endpoint returns versions for the requested student only. Acti
 - Meal editing must support add/remove/reorder operations and food options A/B/C without exposing clinical guidance or auto-generated recommendations.
 - The current draft editor creates a draft and can update it during the same editor session. Resuming an already-saved draft after leaving/reloading requires the planned `GET /api/diets/:id` read endpoint; it is not part of the current draft-write API.
 - The nutritionist can review patient diet versions and activate an eligible draft. The activation RPC serializes transitions for each student and archives the prior active version in the same transaction.
+- `GET /api/me/active-diet` uses the verified bearer identity and an anon-key Supabase client carrying that JWT, so RLS scopes the nested active-diet read to the active student whose forced password change is complete.
 - Keep all feedback visible and accessible; never treat an API error as an empty successful result.
 - Language and date/number formatting use `pt-BR`.
 

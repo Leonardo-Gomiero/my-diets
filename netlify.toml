@@ -10,6 +10,11 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/api/me/active-diet"
+  to = "/.netlify/functions/me-active-diet"
+  status = 200
+
+[[redirects]]
   from = "/api/patients/:id/diets/:dietId/activate"
   to = "/.netlify/functions/patient-diet-activate?studentId=:id&dietId=:dietId"
   status = 200

@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AuthLayout from './layouts/AuthLayout.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
-import Dashboard from './pages/Dashboard.jsx';
+import ActiveDietPage from './pages/ActiveDietPage.jsx';
 import PatientsPage from './pages/PatientsPage.jsx';
 import DietEditorPage from './pages/DietEditorPage.jsx';
 import DietHistoryPage from './pages/DietHistoryPage.jsx';
@@ -73,7 +73,7 @@ function AppRoutes() {
           path="/student"
           element={
             <MainLayout>
-              <Dashboard />
+              <ActiveDietPage />
             </MainLayout>
           }
         />

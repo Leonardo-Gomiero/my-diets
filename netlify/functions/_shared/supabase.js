@@ -27,6 +27,29 @@ export function createTokenVerifierClient(environment = process.env) {
   return createServerClient(url, anonKey);
 }
 
+export function createAuthenticatedSupabaseClient(
+  accessToken,
+  environment = process.env,
+) {
+  if (typeof accessToken !== 'string' || accessToken.trim() === '') {
+    throw new Error('A verified access token is required.');
+  }
+
+  const url = requiredEnvironmentValue(environment, 'SUPABASE_URL');
+  const anonKey = requiredEnvironmentValue(environment, 'SUPABASE_ANON_KEY');
+
+  return createClient(url, anonKey, {
+    global: {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
+    },
+  });
+}
+
 export function createServerSupabaseClient(environment = process.env) {
   if (environment.VITE_SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(

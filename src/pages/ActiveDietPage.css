@@ -1,0 +1,366 @@
+.active-diet {
+  color: var(--color-ink);
+  margin: 0 auto;
+  max-width: 900px;
+}
+
+.active-diet__heading {
+  margin-bottom: 24px;
+}
+
+.active-diet__eyebrow {
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.15px;
+}
+
+.active-diet__heading h1 {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: clamp(34px, 5vw, 48px);
+  font-weight: 500;
+  letter-spacing: -1.7px;
+  line-height: 1.12;
+  margin: 10px 0 7px;
+  overflow-wrap: anywhere;
+}
+
+.active-diet__heading > p {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+.active-diet__plan,
+.active-diet__message {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.active-diet__plan {
+  padding: clamp(18px, 4vw, 32px);
+}
+
+.active-diet__plan-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.active-diet__plan-heading h2 {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 500;
+  letter-spacing: -1px;
+  line-height: 1.2;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.active-diet__status {
+  background: #e8f1e7;
+  border-radius: 20px;
+  color: #3e6e44;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 7px 11px;
+}
+
+.active-diet__nutrition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 0;
+}
+
+.active-diet__nutrition > div {
+  background: #f3f6f1;
+  border-radius: 9px;
+  display: grid;
+  gap: 4px;
+  min-width: 105px;
+  padding: 10px 12px;
+}
+
+.active-diet__nutrition dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.active-diet__nutrition dd {
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.active-diet__notes {
+  border-left: 3px solid #a9c5a1;
+  margin-top: 24px;
+  padding: 2px 0 2px 14px;
+}
+
+.active-diet__notes h3 {
+  font-size: 13px;
+  margin: 0 0 6px;
+}
+
+.active-diet__notes p,
+.active-diet__meal-notes,
+.active-diet__option-notes {
+  color: #667167;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.active-diet__meals {
+  margin-top: 34px;
+}
+
+.active-diet__section-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.active-diet__section-icon,
+.active-diet__empty-icon {
+  align-items: center;
+  background: #e9eee5;
+  border-radius: 50%;
+  color: var(--color-accent);
+  display: inline-flex;
+  flex: 0 0 40px;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.active-diet__section-heading h3 {
+  font-size: 16px;
+  margin: 0 0 3px;
+}
+
+.active-diet__section-heading p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.active-diet__meal {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  margin-top: 12px;
+  padding: clamp(15px, 3vw, 22px);
+}
+
+.active-diet__meal-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.active-diet__meal-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.active-diet__meal-heading h4 {
+  color: var(--color-ink);
+  font-size: 16px;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.active-diet__time {
+  background: #f3f6f1;
+  border-radius: 20px;
+  color: var(--color-ink);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 7px 10px;
+}
+
+.active-diet__meal > .active-diet__nutrition {
+  margin-top: 14px;
+}
+
+.active-diet__meal-notes {
+  margin-top: 12px;
+}
+
+.active-diet__groups {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.active-diet__group {
+  background: #f8faf7;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.active-diet__group h5 {
+  color: var(--color-ink);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+
+.active-diet__group ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.active-diet__option {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.active-diet__option-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.active-diet__option-label {
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.active-diet__quantity {
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.active-diet__food-name {
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.active-diet__option .active-diet__nutrition {
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.active-diet__option .active-diet__nutrition > div {
+  min-width: 78px;
+  padding: 7px 9px;
+}
+
+.active-diet__option .active-diet__nutrition dt {
+  font-size: 9px;
+}
+
+.active-diet__option .active-diet__nutrition dd {
+  font-size: 12px;
+}
+
+.active-diet__option-notes {
+  font-size: 12px;
+  margin-top: 9px;
+}
+
+.active-diet__message {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 12px;
+  min-height: 140px;
+  padding: 24px;
+}
+
+.active-diet__message--error {
+  align-items: flex-start;
+  border-color: #f1d2cb;
+  color: #853b2f;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.active-diet__message--error p {
+  line-height: 1.5;
+  margin: 0;
+}
+
+.active-diet__message--empty {
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.active-diet__message--empty h2 {
+  color: var(--color-ink);
+  font-size: 16px;
+  margin: 0;
+}
+
+.active-diet__message--empty p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.active-diet__message .button:focus-visible {
+  outline: 3px solid #96b994;
+  outline-offset: 3px;
+}
+
+.active-diet .loading-spinner {
+  animation: active-diet-spin 800ms linear infinite;
+  border: 2px solid #dfe5dc;
+  border-radius: 50%;
+  border-top-color: var(--color-accent);
+  flex: 0 0 auto;
+  height: 18px;
+  width: 18px;
+}
+
+@keyframes active-diet-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .active-diet__plan-heading {
+    flex-direction: column;
+  }
+
+  .active-diet__nutrition > div {
+    flex: 1 1 38%;
+    min-width: 0;
+  }
+
+  .active-diet__meal-heading {
+    align-items: flex-start;
+  }
+}
