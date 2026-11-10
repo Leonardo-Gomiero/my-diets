@@ -63,7 +63,7 @@ async function saveDiet(path, method, payload, { accessToken, fetchImpl = fetch 
 
 export function createDiet(patientId, payload, options) {
   return saveDiet(
-    `/api/patients/${encodeURIComponent(patientId)}/diets`,
+    `/api/patient-diets?id=${encodeURIComponent(patientId)}`,
     'POST',
     payload,
     options,
@@ -118,7 +118,7 @@ export async function getDietHistory(patientId, { accessToken, fetchImpl = fetch
   let response;
   try {
     response = await fetchImpl(
-      `/api/patients/${encodeURIComponent(patientId)}/diets`,
+      `/api/patient-diets?id=${encodeURIComponent(patientId)}`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         cache: 'no-store',
@@ -153,7 +153,7 @@ export async function activateDiet(
   let response;
   try {
     response = await fetchImpl(
-      `/api/patients/${encodeURIComponent(patientId)}/diets/${encodeURIComponent(dietId)}/activate`,
+      `/api/patient-diet-activate?studentId=${encodeURIComponent(patientId)}&dietId=${encodeURIComponent(dietId)}`,
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}` },

@@ -38,7 +38,7 @@ describe('dietService', () => {
       }),
     ).resolves.toEqual(diet);
     expect(fetchImpl).toHaveBeenCalledWith(
-      '/api/patients/patient%20id/diets',
+      '/api/patient-diets?id=patient%20id',
       expect.objectContaining({
         method: 'POST',
         headers: {
@@ -119,7 +119,7 @@ describe('dietService', () => {
       getDietHistory('patient/1', { accessToken: 'token', fetchImpl }),
     ).resolves.toEqual(diets);
     expect(fetchImpl).toHaveBeenCalledWith(
-      '/api/patients/patient%2F1/diets',
+      '/api/patient-diets?id=patient%2F1',
       expect.objectContaining({
         headers: { Authorization: 'Bearer token' },
         cache: 'no-store',
@@ -136,7 +136,7 @@ describe('dietService', () => {
       activateDiet('patient-1', 'diet-1', { accessToken: 'token', fetchImpl }),
     ).resolves.toEqual(activeDiet);
     expect(fetchImpl).toHaveBeenCalledWith(
-      '/api/patients/patient-1/diets/diet-1/activate',
+      '/api/patient-diet-activate?studentId=patient-1&dietId=diet-1',
       expect.objectContaining({
         method: 'POST',
         headers: { Authorization: 'Bearer token' },
