@@ -24,7 +24,7 @@ function LoginRoute() {
   if (status === 'loading' || status === 'authenticating') {
     return (
       <AuthLayout>
-        <p role="status" aria-live="polite">Checking your session…</p>
+        <p role="status" aria-live="polite">Verificando sua sessão…</p>
       </AuthLayout>
     );
   }
@@ -93,7 +93,7 @@ function PasswordChangeRoute() {
   const { status, session, mustChangePassword, profile } = useAuth();
 
   if (status === 'loading' || status === 'authenticating') {
-    return <p role="status">Checking your session…</p>;
+    return <p role="status">Verificando sua sessão…</p>;
   }
 
   if (!session) {

@@ -95,7 +95,7 @@ describe('Supabase Auth integration', () => {
 
     await expect(
       signIn('person@example.test', 'secret', { client, fetchImpl }),
-    ).rejects.toThrow('Your account could not be verified.');
+    ).rejects.toThrow('Não foi possível verificar sua conta.');
 
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
@@ -108,7 +108,7 @@ describe('Supabase Auth integration', () => {
         client,
         fetchImpl: vi.fn().mockRejectedValue(new Error('private network detail')),
       }),
-    ).rejects.toThrow('Unable to verify your account right now.');
+    ).rejects.toThrow('Não foi possível verificar sua conta agora.');
 
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
@@ -138,7 +138,7 @@ describe('Supabase Auth integration', () => {
         getApplicationProfile(session, {
           fetchImpl: profileResponse({ body }),
         }),
-      ).rejects.toThrow('Your account could not be verified.');
+      ).rejects.toThrow('Não foi possível verificar sua conta.');
     }
   });
 
@@ -159,7 +159,7 @@ describe('Supabase Auth integration', () => {
           status: 403,
         }),
       }),
-    ).rejects.toThrow('Your account could not be verified.');
+    ).rejects.toThrow('Não foi possível verificar sua conta.');
   });
 
   it('confirms password completion by reloading the profile after the endpoint', async () => {
@@ -234,7 +234,7 @@ describe('Supabase Auth integration', () => {
 
     await expect(
       changeRequiredPassword(session, 'a-long-test-password', { client, fetchImpl }),
-    ).rejects.toThrow('password was changed, but account setup is still pending');
+    ).rejects.toThrow('Sua senha foi alterada, mas a configuração da conta ainda está pendente.');
   });
 
   it('rejects a network failure while restoring an existing session', async () => {
@@ -244,7 +244,7 @@ describe('Supabase Auth integration', () => {
     const fetchImpl = vi.fn().mockRejectedValue(new Error('network down'));
 
     await expect(restoreSession({ client, fetchImpl })).rejects.toThrow(
-      'Unable to verify your account right now.',
+      'Não foi possível verificar sua conta agora.',
     );
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });

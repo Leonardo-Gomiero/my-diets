@@ -40,15 +40,16 @@ export default function Dashboard() {
     <section className="dashboard">
       <div className="dashboard__heading">
         <div>
-          <span className="eyebrow dashboard__eyebrow">YOUR OVERVIEW</span>
-          <h1>A fresh start, every day.</h1>
-          <p>Here’s a little inspiration to keep building healthy habits.</p>
+          <span className="eyebrow dashboard__eyebrow">SEU RESUMO</span>
+          <h1>Um novo começo, todos os dias.</h1>
+          <p>Uma inspiração para continuar cultivando hábitos saudáveis.</p>
         </div>
         <div className="dashboard__date">
-          {new Intl.DateTimeFormat(undefined, {
+          {new Intl.DateTimeFormat('pt-BR', {
             weekday: 'long',
             month: 'long',
             day: 'numeric',
+            year: 'numeric',
           }).format(new Date())}
         </div>
       </div>
@@ -58,10 +59,9 @@ export default function Dashboard() {
           <FiActivity aria-hidden="true" />
         </div>
         <div>
-          <h2>Progress, not perfection.</h2>
+          <h2>Progresso, não perfeição.</h2>
           <p>
-            Your wellness journey is uniquely yours. Keep showing up for
-            yourself.
+            Sua jornada de bem-estar é única. Continue cuidando de você.
           </p>
         </div>
       </div>
@@ -72,27 +72,29 @@ export default function Dashboard() {
             <FiUsers aria-hidden="true" />
           </span>
           <div>
-            <h2>Community inspiration</h2>
-            <p>A few people from our sample directory</p>
+            <h2>Inspiração da comunidade</h2>
+            <p>Algumas pessoas do nosso diretório de exemplo</p>
           </div>
         </div>
         {status === 'success' && (
-          <span className="dashboard__count">{users.length} members</span>
+          <span className="dashboard__count">
+            {users.length} {users.length === 1 ? 'pessoa' : 'pessoas'}
+          </span>
         )}
       </div>
 
       {status === 'loading' && (
         <div className="dashboard__message" role="status" aria-live="polite">
           <span className="loading-spinner" aria-hidden="true" />
-          Loading community members…
+          Carregando pessoas da comunidade…
         </div>
       )}
 
       {status === 'error' && (
         <div className="dashboard__message dashboard__message--error" role="alert">
-          <p>We couldn’t load the community right now. {error}</p>
+          <p>Não foi possível carregar a comunidade agora. {error}</p>
           <Button variant="quiet" onClick={() => setRequestNumber((count) => count + 1)}>
-            Try again
+            Tentar novamente
           </Button>
         </div>
       )}
@@ -115,7 +117,7 @@ export default function Dashboard() {
               <a
                 className="member-card__link"
                 href={`mailto:${user.email}`}
-                aria-label={`Contact ${user.name}`}
+                aria-label={`Entrar em contato com ${user.name}`}
               >
                 <FiArrowUpRight aria-hidden="true" />
               </a>

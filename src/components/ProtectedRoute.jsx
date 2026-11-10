@@ -13,7 +13,7 @@ export default function ProtectedRoute({ allowedRole }) {
   if (status === 'loading' || status === 'authenticating') {
     return (
       <div role="status" aria-live="polite">
-        Checking your session…
+        Verificando sua sessão…
       </div>
     );
   }

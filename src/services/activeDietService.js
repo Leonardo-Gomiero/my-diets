@@ -23,7 +23,7 @@ export async function getActiveDiet({
     });
   } catch {
     if (signal?.aborted) {
-      throw new DOMException('The operation was aborted.', 'AbortError');
+      throw new DOMException('A operação foi cancelada.', 'AbortError');
     }
     throw new Error('Não foi possível conectar ao serviço. Verifique a conexão e tente novamente.');
   }

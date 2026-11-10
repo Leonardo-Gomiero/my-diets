@@ -396,7 +396,7 @@ export default function DietEditorPage() {
     <section className="diet-editor" aria-labelledby="diet-editor-title">
       <button className="diet-editor__back" type="button" onClick={leaveEditor}>
         <FiArrowLeft aria-hidden="true" />
-        Voltar aos pacientes
+        Voltar às dietas
       </button>
       <header className="diet-editor__heading">
         <div>

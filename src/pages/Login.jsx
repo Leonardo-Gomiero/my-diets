@@ -30,7 +30,7 @@ export default function Login() {
         replace: true,
       });
     } catch (loginError) {
-      setError(loginError.message || 'Unable to sign in. Please try again.');
+      setError(loginError.message || 'Não foi possível entrar. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -38,22 +38,22 @@ export default function Login() {
 
   return (
     <div className="login">
-      <span className="eyebrow login__eyebrow">WELCOME BACK</span>
-      <h1>Good to see you.</h1>
+      <span className="eyebrow login__eyebrow">BEM-VINDO DE VOLTA</span>
+      <h1>Que bom ter você aqui.</h1>
       <p className="login__intro">
-        Sign in to pick up where you left off.
+        Entre para continuar de onde parou.
       </p>
 
       <form className="login-form" onSubmit={handleSubmit}>
         <label className="form-field">
-          <span>Email address</span>
+          <span>E-mail</span>
           <span className="form-field__control">
             <FiMail aria-hidden="true" />
             <input
               autoComplete="email"
               type="email"
               name="email"
-              placeholder="you@example.com"
+              placeholder="voce@exemplo.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -62,14 +62,14 @@ export default function Login() {
         </label>
 
         <label className="form-field">
-          <span>Password</span>
+          <span>Senha</span>
           <span className="form-field__control">
             <FiLock aria-hidden="true" />
             <input
               autoComplete="current-password"
               type="password"
               name="password"
-              placeholder="Enter your password"
+              placeholder="Digite sua senha"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
@@ -84,7 +84,7 @@ export default function Login() {
         )}
 
         <Button className="login__submit" type="submit" disabled={isSubmitting}>
-          <span>{isSubmitting ? 'Signing in…' : 'Sign in'}</span>
+          <span>{isSubmitting ? 'Entrando…' : 'Entrar'}</span>
           {!isSubmitting && <FiArrowRight aria-hidden="true" />}
         </Button>
       </form>

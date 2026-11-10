@@ -3,7 +3,7 @@ import { getSupabaseClient } from './supabaseClient.js';
 const VALID_ROLES = new Set(['ADMIN', 'STUDENT']);
 
 function authenticationError() {
-  return new Error('Email or password is incorrect.');
+  return new Error('E-mail ou senha incorretos.');
 }
 
 export async function getApplicationProfile(
@@ -11,7 +11,7 @@ export async function getApplicationProfile(
   { fetchImpl = fetch } = {},
 ) {
   if (!session?.access_token || !session.user?.id) {
-    throw new Error('Your session is no longer valid. Please sign in again.');
+    throw new Error('Sua sessão expirou. Entre novamente para continuar.');
   }
 
   let response;
@@ -22,7 +22,7 @@ export async function getApplicationProfile(
       },
     });
   } catch {
-    throw new Error('Unable to verify your account right now. Please try again.');
+    throw new Error('Não foi possível verificar sua conta agora. Tente novamente.');
   }
 
   if (!response.ok) {
@@ -41,17 +41,17 @@ export async function getApplicationProfile(
     }
 
     if (response.status === 401 || response.status === 403) {
-      throw new Error('Your account could not be verified. Please contact support.');
+      throw new Error('Não foi possível verificar sua conta. Entre em contato com o suporte.');
     }
 
-    throw new Error('Unable to verify your account right now. Please try again.');
+    throw new Error('Não foi possível verificar sua conta agora. Tente novamente.');
   }
 
   let result;
   try {
     result = await response.json();
   } catch {
-    throw new Error('The account service returned an invalid response.');
+    throw new Error('O serviço de contas retornou uma resposta inválida.');
   }
 
   const profile = result?.data?.profile;
@@ -62,7 +62,7 @@ export async function getApplicationProfile(
     !VALID_ROLES.has(profile.role) ||
     profile.is_active !== true
   ) {
-    throw new Error('Your account could not be verified. Please contact support.');
+    throw new Error('Não foi possível verificar sua conta. Entre em contato com o suporte.');
   }
 
   return { profile, mustChangePassword: false };
@@ -71,7 +71,7 @@ export async function getApplicationProfile(
 async function revokeSession(client) {
   const { error } = await client.auth.signOut({ scope: 'local' });
   if (error) {
-    throw new Error('Unable to clear the current session.');
+    throw new Error('Não foi possível encerrar a sessão atual.');
   }
 }
 
@@ -80,7 +80,7 @@ async function clearRejectedSession(client, verificationError) {
     await revokeSession(client);
   } catch {
     throw new Error(
-      'Your session could not be cleared. Close this browser window and contact support.',
+      'Não foi possível encerrar sua sessão. Feche esta janela do navegador e entre em contato com o suporte.',
     );
   }
 
@@ -94,7 +94,7 @@ export async function signIn(
 ) {
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail || !password) {
-    throw new Error('Enter your email address and password to continue.');
+    throw new Error('Informe seu e-mail e sua senha para continuar.');
   }
 
   const { data, error } = await client.auth.signInWithPassword({
@@ -119,7 +119,7 @@ export async function restoreSession(
 ) {
   const { data, error } = await client.auth.getSession();
   if (error) {
-    throw new Error('Unable to restore your session. Please sign in again.');
+    throw new Error('Não foi possível restaurar sua sessão. Entre novamente.');
   }
 
   if (!data?.session) {
@@ -140,7 +140,7 @@ export async function changeRequiredPassword(
   { client = getSupabaseClient(), fetchImpl = fetch } = {},
 ) {
   if (!session?.access_token || !session.user?.email) {
-    throw new Error('Your session is no longer valid. Please sign in again.');
+    throw new Error('Sua sessão expirou. Entre novamente para continuar.');
   }
 
   async function recoverUpdatedPassword() {
@@ -172,7 +172,7 @@ export async function changeRequiredPassword(
     if (updatedState && !updatedState.mustChangePassword && updatedState.profile) {
       return updatedState;
     }
-    throw new Error('Unable to complete password setup. Submit again to retry safely.');
+    throw new Error('Não foi possível concluir a troca de senha. Envie novamente para tentar com segurança.');
   }
 
   if (!response.ok) {
@@ -187,7 +187,7 @@ export async function changeRequiredPassword(
       const updatedState = await recoverUpdatedPassword();
       if (updatedState?.mustChangePassword) {
         throw new Error(
-          'Your password was changed, but account setup is still pending. Submit a new password to safely retry.',
+          'Sua senha foi alterada, mas a configuração da conta ainda está pendente. Informe uma nova senha para tentar novamente com segurança.',
         );
       }
       if (updatedState?.profile) {
@@ -204,12 +204,12 @@ export async function changeRequiredPassword(
       return updatedState;
     }
 
-    throw new Error('Unable to complete password setup. Submit again to retry safely.');
+    throw new Error('Não foi possível concluir a troca de senha. Envie novamente para tentar com segurança.');
   }
 
   const updatedState = await recoverUpdatedPassword();
   if (!updatedState || updatedState.mustChangePassword || !updatedState.profile) {
-    throw new Error('Password setup is not confirmed yet. Please try again.');
+    throw new Error('A troca de senha ainda não foi confirmada. Tente novamente.');
   }
 
   return updatedState;
@@ -218,6 +218,6 @@ export async function changeRequiredPassword(
 export async function signOut({ client = getSupabaseClient() } = {}) {
   const { error } = await client.auth.signOut({ scope: 'local' });
   if (error) {
-    throw new Error('Unable to clear the current session.');
+    throw new Error('Não foi possível encerrar a sessão atual.');
   }
 }

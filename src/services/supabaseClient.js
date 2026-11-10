@@ -11,7 +11,7 @@ export function createBrowserSupabaseClient(
 ) {
   if (!url || !anonKey) {
     throw new Error(
-      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+      'O Supabase não está configurado. Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.',
     );
   }
 

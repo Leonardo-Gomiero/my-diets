@@ -5,8 +5,8 @@ import './AuthLayout.css';
 export default function AuthLayout({ children }) {
   return (
     <main className="auth-layout">
-      <section className="auth-panel" aria-label="Sign in">
-        <Link className="brand brand--auth" to="/" aria-label="My Diets home">
+      <section className="auth-panel" aria-label="Entrar">
+        <Link className="brand brand--auth" to="/" aria-label="Página inicial My Diets">
           <span className="brand__icon">
             <FiActivity aria-hidden="true" />
           </span>
@@ -14,20 +14,20 @@ export default function AuthLayout({ children }) {
         </Link>
         {children}
         <p className="auth-panel__footnote">
-          A little more mindful, one day at a time.
+          Mais atenção e cuidado, um dia de cada vez.
         </p>
       </section>
-      <aside className="auth-aside" aria-label="Welcome">
+      <aside className="auth-aside" aria-label="Boas-vindas">
         <div className="auth-aside__content">
-          <span className="eyebrow">YOUR WELLNESS, IN FOCUS</span>
-          <h2>Small steps make a big difference.</h2>
+          <span className="eyebrow">SEU BEM-ESTAR EM FOCO</span>
+          <h2>Pequenos passos fazem a diferença.</h2>
           <p>
-            Keep your goals close, celebrate your progress, and make space for
-            better habits.
+            Mantenha seus objetivos por perto, celebre seu progresso e abra
+            espaço para hábitos mais saudáveis.
           </p>
           <div className="auth-aside__quote">
             <span aria-hidden="true">“</span>
-            <p>Consistency is built one thoughtful choice at a time.</p>
+            <p>A constância se constrói com escolhas conscientes, uma de cada vez.</p>
           </div>
         </div>
         <span className="auth-aside__decoration" aria-hidden="true" />

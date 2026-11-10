@@ -110,12 +110,12 @@ export function AuthProvider({ children }) {
 
   async function completePasswordChange(password) {
     if (!auth.session || !auth.mustChangePassword) {
-      throw new Error('No required password change is pending.');
+      throw new Error('Não há uma troca de senha pendente.');
     }
 
     const result = await updateRequiredPassword(auth.session, password);
     if (!result.session || !result.profile || result.mustChangePassword) {
-      throw new Error('Password setup is not confirmed yet. Please try again.');
+      throw new Error('A troca de senha ainda não foi confirmada. Tente novamente.');
     }
 
     return result;
@@ -123,7 +123,7 @@ export function AuthProvider({ children }) {
 
   function finishPasswordChange({ session, profile }) {
     if (!auth.session || !auth.mustChangePassword || !session || !profile) {
-      throw new Error('Password setup is not confirmed yet. Please try again.');
+      throw new Error('A troca de senha ainda não foi confirmada. Tente novamente.');
     }
 
     setAuth({
@@ -175,7 +175,7 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider.');
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider.');
   }
 
   return context;
