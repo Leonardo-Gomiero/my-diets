@@ -15,7 +15,7 @@
 - [ ] **BE-03**: Connect the frontend login/logout flow to Supabase Auth and load the application profile.
 - [ ] **BE-04**: Implement the forced password-change flow; block all other application data access until the password and profile flag are updated successfully.
 - [ ] **BE-05**: Implement cryptographically secure temporary-password generation.
-- [ ] **BE-06**: Implement admin-only student creation and temporary-password rotation; return the password once, enforce `must_change_password`, and handle partial failures/orphaned users safely.
+- [ ] **BE-06**: Implement admin-only patient creation and temporary-password rotation; return the password once, enforce `must_change_password`, and handle partial failures/orphaned users safely.
 - [ ] **BE-07**: Add tests proving temporary passwords are not persisted, logged, or returned by subsequent reads.
 
 ## Phase 3: Shared Frontend Foundation

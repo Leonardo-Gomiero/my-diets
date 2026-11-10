@@ -150,16 +150,16 @@ All function routes are under `/.netlify/functions/` or are mapped to `/api/*` i
 
 | Method and route | Access | Purpose |
 |---|---|---|
-| `GET /api/students?search=` | Admin | List/search active and inactive student profiles |
-| `POST /api/students` | Admin | Create a student and return the one-time temporary password |
-| `GET /api/students/:id` | Admin | Get profile and diet summary |
-| `PUT /api/students/:id` | Admin | Update basic fields/status |
-| `POST /api/students/:id/temporary-password` | Admin | Rotate password and return it once |
+| `GET /api/patients?search=` | Admin | List/search active and inactive patient profiles |
+| `POST /api/patients` | Admin | Create a patient and return the one-time temporary password |
+| `GET /api/patients/:id` | Admin | Get profile and diet summary |
+| `PUT /api/patients/:id` | Admin | Update basic fields/status |
+| `POST /api/patients/:id/temporary-password` | Admin | Rotate password and return it once |
 | `GET /api/me` | Authenticated | Return the caller's application profile and access state |
 | `PUT /api/me/password` | Authenticated, including forced-change session | Change password and clear `must_change_password` |
 | `GET /api/me/active-diet` | Active student after required password change | Return only the caller's active diet tree |
-| `GET /api/students/:id/diets` | Admin | Return diet/version history |
-| `POST /api/students/:id/diets` | Admin | Create a draft diet |
+| `GET /api/patients/:id/diets` | Admin | Return diet/version history |
+| `POST /api/patients/:id/diets` | Admin | Create a draft diet |
 | `GET /api/diets/:id` | Admin owner of operation or owning student for active diet | Return a nested diet tree |
 | `PUT /api/diets/:id` | Admin | Update a draft diet |
 | `POST /api/diets/:id/activate` | Admin | Atomically activate a draft and archive the prior active diet |
