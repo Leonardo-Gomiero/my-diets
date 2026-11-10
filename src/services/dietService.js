@@ -61,6 +61,10 @@ async function saveDiet(path, method, payload, { accessToken, fetchImpl = fetch 
   return diet;
 }
 
+function dietEndpoint(dietId) {
+  return `/api/diet?id=${encodeURIComponent(dietId)}`;
+}
+
 export function createDiet(patientId, payload, options) {
   return saveDiet(
     `/api/patient-diets?id=${encodeURIComponent(patientId)}`,
@@ -72,7 +76,7 @@ export function createDiet(patientId, payload, options) {
 
 export function updateDiet(dietId, payload, options) {
   return saveDiet(
-    `/api/diets/${encodeURIComponent(dietId)}`,
+    dietEndpoint(dietId),
     'PUT',
     payload,
     options,
@@ -82,7 +86,7 @@ export function updateDiet(dietId, payload, options) {
 export async function getDiet(dietId, { accessToken, fetchImpl = fetch } = {}) {
   let response;
   try {
-    response = await fetchImpl(`/api/diets/${encodeURIComponent(dietId)}`, {
+    response = await fetchImpl(dietEndpoint(dietId), {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: 'no-store',
     });
@@ -195,7 +199,7 @@ export async function duplicateDiet(
 ) {
   let response;
   try {
-    response = await fetchImpl(`/api/diets/${encodeURIComponent(dietId)}`, {
+    response = await fetchImpl(dietEndpoint(dietId), {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: 'no-store',
@@ -233,7 +237,7 @@ export async function deleteDiet(
 ) {
   let response;
   try {
-    response = await fetchImpl(`/api/diets/${encodeURIComponent(dietId)}`, {
+    response = await fetchImpl(dietEndpoint(dietId), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: 'no-store',

@@ -60,7 +60,7 @@ describe('dietService', () => {
       }),
     ).resolves.toEqual(diet);
     expect(fetchImpl).toHaveBeenCalledWith(
-      '/api/diets/diet%2F1',
+      '/api/diet?id=diet%2F1',
       expect.objectContaining({ method: 'PUT' }),
     );
   });
@@ -105,7 +105,7 @@ describe('dietService', () => {
       getDiet('diet-1', { accessToken: 'token', fetchImpl }),
     ).resolves.toEqual(activeDiet);
     expect(fetchImpl).toHaveBeenCalledWith(
-      '/api/diets/diet-1',
+      '/api/diet?id=diet-1',
       expect.objectContaining({ cache: 'no-store' }),
     );
   });
@@ -174,7 +174,7 @@ describe('dietService', () => {
       duplicateDiet('diet-1', { accessToken: 'token', fetchImpl }),
     ).resolves.toEqual(duplicate);
     expect(fetchImpl).toHaveBeenCalledWith(
-      '/api/diets/diet-1',
+      '/api/diet?id=diet-1',
       expect.objectContaining({
         method: 'POST',
         headers: { Authorization: 'Bearer token' },
@@ -198,7 +198,7 @@ describe('dietService', () => {
       deleteDiet('diet-1', { accessToken: 'token', fetchImpl }),
     ).resolves.toBeUndefined();
     expect(fetchImpl).toHaveBeenCalledWith(
-      '/api/diets/diet-1',
+      '/api/diet?id=diet-1',
       expect.objectContaining({
         method: 'DELETE',
         headers: { Authorization: 'Bearer token' },
