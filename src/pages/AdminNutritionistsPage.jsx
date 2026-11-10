@@ -402,16 +402,16 @@ export default function AdminNutritionistsPage() {
                         {nutritionist.full_name}
                       </span>
                     </th>
-                    <td>{nutritionist.email}</td>
-                    <td>{nutritionist.phone || '—'}</td>
-                    <td>
+                    <td data-label="E-mail">{nutritionist.email}</td>
+                    <td data-label="WhatsApp">{nutritionist.phone || '—'}</td>
+                    <td data-label="Status">
                       <span
                         className={`admin-status ${nutritionist.is_active ? 'admin-status--active' : 'admin-status--inactive'}`}
                       >
                         {nutritionist.is_active ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="">
                       <div className="admin-row-actions">
                         <Button
                           type="button"

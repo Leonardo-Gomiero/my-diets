@@ -1,5 +1,6 @@
 .main-layout {
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .topbar {
@@ -45,8 +46,10 @@
 .main-content {
   margin: 0 auto;
   max-width: 1120px;
+  min-width: 0;
   min-height: calc(100vh - 140px);
   padding: 64px 32px 80px;
+  width: 100%;
 }
 
 .main-footer {

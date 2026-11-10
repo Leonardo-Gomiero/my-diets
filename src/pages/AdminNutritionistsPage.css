@@ -1,5 +1,7 @@
 .admin-page {
   color: var(--color-ink);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .admin-heading {
@@ -8,6 +10,7 @@
   gap: 20px;
   justify-content: space-between;
   margin-bottom: 28px;
+  min-width: 0;
 }
 
 .admin-heading h1 {
@@ -51,6 +54,7 @@
   gap: 28px;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
   margin-bottom: 20px;
+  min-width: 0;
   padding: 22px 24px;
 }
 
@@ -69,6 +73,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  min-width: 0;
 }
 
 .admin-login-form label,
@@ -225,11 +230,14 @@
 }
 
 .admin-list {
+  min-width: 0;
   padding: 20px;
 }
 
 .admin-table-wrap {
+  max-width: 100%;
   overflow: auto;
+  width: 100%;
 }
 
 .admin-table {
@@ -363,6 +371,7 @@
   .admin-heading {
     gap: 14px;
     margin-bottom: 20px;
+    width: 100%;
   }
 
   .admin-heading h1 {
@@ -371,6 +380,16 @@
 
   .admin-heading > .button,
   .admin-login-form > .button {
+    width: 100%;
+  }
+
+  .admin-login-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-login-form label {
+    min-width: 0;
     width: 100%;
   }
 
@@ -412,7 +431,76 @@
 
   .admin-table th,
   .admin-table td {
-    padding: 12px 9px;
+    border-bottom: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding: 6px 0;
+  }
+
+  .admin-table {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-table tbody tr {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    display: grid;
+    gap: 4px 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+    padding: 14px;
+  }
+
+  .admin-table tbody tr:last-child th,
+  .admin-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .admin-table tbody th {
+    grid-column: 1 / -1;
+    padding: 0 0 8px;
+  }
+
+  .admin-table tbody td::before {
+    color: var(--color-text-muted);
+    content: attr(data-label);
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+
+  .admin-table tbody td[data-label="E-mail"],
+  .admin-table tbody td[data-label=""] {
+    grid-column: 1 / -1;
+  }
+
+  .admin-table tbody td[data-label=""]::before {
+    display: none;
+  }
+
+  .admin-row-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    white-space: normal;
+  }
+
+  .admin-row-actions .button {
+    flex: 1 1 120px;
   }
 
   .admin-credential > div {
