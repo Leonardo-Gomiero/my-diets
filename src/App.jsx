@@ -5,12 +5,16 @@ import AuthLayout from './layouts/AuthLayout.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
+import ChangePassword from './pages/ChangePassword.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 function LoginRoute() {
-  const { status, session, profile } = useAuth();
+  const { status, session, profile, mustChangePassword } = useAuth();
 
   if (session) {
+    if (mustChangePassword || status === 'password_change_required') {
+      return <Navigate to="/change-password" replace />;
+    }
     return <Navigate to={profile?.role === 'ADMIN' ? '/admin' : '/student'} replace />;
   }
 
@@ -34,6 +38,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<LoginRoute />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/change-password" element={<PasswordChangeRoute />} />
       <Route element={<ProtectedRoute allowedRole="ADMIN" />}>
         <Route
           path="/admin"
@@ -62,6 +67,33 @@ function AppRoutes() {
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
+  );
+}
+
+function PasswordChangeRoute() {
+  const { status, session, mustChangePassword, profile } = useAuth();
+
+  if (status === 'loading' || status === 'authenticating') {
+    return <p role="status">Checking your session…</p>;
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!mustChangePassword || status !== 'password_change_required') {
+    return (
+      <Navigate
+        to={profile?.role === 'ADMIN' ? '/admin' : '/student'}
+        replace
+      />
+    );
+  }
+
+  return (
+    <AuthLayout>
+      <ChangePassword />
+    </AuthLayout>
   );
 }
 

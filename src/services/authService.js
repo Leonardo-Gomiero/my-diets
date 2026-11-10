@@ -26,6 +26,20 @@ export async function getApplicationProfile(
   }
 
   if (!response.ok) {
+    let errorBody;
+    try {
+      errorBody = await response.json();
+    } catch {
+      errorBody = null;
+    }
+
+    if (
+      response.status === 403 &&
+      errorBody?.error?.code === 'PASSWORD_CHANGE_REQUIRED'
+    ) {
+      return { profile: null, mustChangePassword: true };
+    }
+
     if (response.status === 401 || response.status === 403) {
       throw new Error('Your account could not be verified. Please contact support.');
     }
@@ -51,7 +65,7 @@ export async function getApplicationProfile(
     throw new Error('Your account could not be verified. Please contact support.');
   }
 
-  return profile;
+  return { profile, mustChangePassword: false };
 }
 
 async function revokeSession(client) {
@@ -93,8 +107,8 @@ export async function signIn(
   }
 
   try {
-    const profile = await getApplicationProfile(data.session, { fetchImpl });
-    return { session: data.session, profile };
+    const applicationState = await getApplicationProfile(data.session, { fetchImpl });
+    return { session: data.session, ...applicationState };
   } catch (error) {
     await clearRejectedSession(client, error);
   }
@@ -113,11 +127,72 @@ export async function restoreSession(
   }
 
   try {
-    const profile = await getApplicationProfile(data.session, { fetchImpl });
-    return { session: data.session, profile };
+    const applicationState = await getApplicationProfile(data.session, { fetchImpl });
+    return { session: data.session, ...applicationState };
   } catch (error) {
     await clearRejectedSession(client, error);
   }
+}
+
+export async function changeRequiredPassword(
+  session,
+  password,
+  { fetchImpl = fetch } = {},
+) {
+  if (!session?.access_token) {
+    throw new Error('Your session is no longer valid. Please sign in again.');
+  }
+
+  let response;
+  try {
+    response = await fetchImpl('/api/me/password', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password }),
+    });
+  } catch {
+    const currentState = await getApplicationProfile(session, { fetchImpl });
+    if (!currentState.mustChangePassword) {
+      return currentState;
+    }
+    throw new Error('Unable to complete password setup. Submit again to retry safely.');
+  }
+
+  if (!response.ok) {
+    let errorBody;
+    try {
+      errorBody = await response.json();
+    } catch {
+      errorBody = null;
+    }
+
+    const currentState = await getApplicationProfile(session, { fetchImpl });
+    if (!currentState.mustChangePassword) {
+      return currentState;
+    }
+
+    if (errorBody?.error?.code === 'PASSWORD_PROFILE_UPDATE_PENDING') {
+      throw new Error(
+        'Your password was changed, but account setup is still pending. Submit a new password to safely retry.',
+      );
+    }
+
+    if (errorBody?.error?.code === 'INVALID_PASSWORD') {
+      throw new Error(errorBody.error.message);
+    }
+
+    throw new Error('Unable to complete password setup. Submit again to retry safely.');
+  }
+
+  const currentState = await getApplicationProfile(session, { fetchImpl });
+  if (currentState.mustChangePassword || !currentState.profile) {
+    throw new Error('Password setup is not confirmed yet. Please try again.');
+  }
+
+  return currentState;
 }
 
 export async function signOut({ client = getSupabaseClient() } = {}) {

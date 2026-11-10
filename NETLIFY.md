@@ -25,6 +25,14 @@ provide a demo sign-in. After sign-in, the frontend requests `GET /api/me` with
 the access token to obtain the application profile. Missing, invalid, or inactive
 profiles do not establish an application session.
 
+Students with `must_change_password` set receive only a password-change-required
+response from authenticated data endpoints. `POST /api/me/password` is the
+exception: it accepts the authenticated student's new password, updates Supabase
+Auth first, then clears the profile flag. If the Auth update succeeds but the
+profile update fails, the flag stays set and all data endpoints remain blocked;
+the student can submit a new password to safely retry. The endpoint is
+idempotent when a prior attempt already cleared the flag.
+
 ### Netlify Functions variables
 
 Set these for server-side Functions; do not prefix server secrets with `VITE_`.

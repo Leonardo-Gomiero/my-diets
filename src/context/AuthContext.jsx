@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import {
+  changeRequiredPassword as updateRequiredPassword,
   restoreSession,
   signIn as authenticate,
   signOut as clearSession,
@@ -13,6 +14,7 @@ export function AuthProvider({ children }) {
     status: 'loading',
     session: null,
     profile: null,
+    mustChangePassword: false,
     error: '',
   });
 
@@ -25,9 +27,14 @@ export function AuthProvider({ children }) {
         const restored = await restoreSession();
         if (active) {
           setAuth({
-            status: restored ? 'authenticated' : 'unauthenticated',
+            status: restored
+              ? restored.mustChangePassword
+                ? 'password_change_required'
+                : 'authenticated'
+              : 'unauthenticated',
             session: restored?.session ?? null,
             profile: restored?.profile ?? null,
+            mustChangePassword: restored?.mustChangePassword ?? false,
             error: '',
           });
         }
@@ -37,6 +44,7 @@ export function AuthProvider({ children }) {
             status: 'unauthenticated',
             session: null,
             profile: null,
+            mustChangePassword: false,
             error: error.message,
           });
         }
@@ -50,6 +58,7 @@ export function AuthProvider({ children }) {
             status: 'unauthenticated',
             session: null,
             profile: null,
+            mustChangePassword: false,
             error: '',
           });
         }
@@ -61,6 +70,7 @@ export function AuthProvider({ children }) {
         status: 'unauthenticated',
         session: null,
         profile: null,
+        mustChangePassword: false,
         error: error.message,
       });
     }
@@ -77,9 +87,12 @@ export function AuthProvider({ children }) {
     try {
       const result = await authenticate(email, password);
       setAuth({
-        status: 'authenticated',
+        status: result.mustChangePassword
+          ? 'password_change_required'
+          : 'authenticated',
         session: result.session,
         profile: result.profile,
+        mustChangePassword: result.mustChangePassword,
         error: '',
       });
       return result;
@@ -88,10 +101,38 @@ export function AuthProvider({ children }) {
         status: 'unauthenticated',
         session: null,
         profile: null,
+        mustChangePassword: false,
         error: error.message,
       });
       throw error;
     }
+  }
+
+  async function completePasswordChange(password) {
+    if (!auth.session || !auth.mustChangePassword) {
+      throw new Error('No required password change is pending.');
+    }
+
+    const result = await updateRequiredPassword(auth.session, password);
+    if (!result.profile || result.mustChangePassword) {
+      throw new Error('Password setup is not confirmed yet. Please try again.');
+    }
+
+    return result.profile;
+  }
+
+  function finishPasswordChange(profile) {
+    if (!auth.session || !auth.mustChangePassword || !profile) {
+      throw new Error('Password setup is not confirmed yet. Please try again.');
+    }
+
+    setAuth({
+      status: 'authenticated',
+      session: auth.session,
+      profile: result.profile,
+      mustChangePassword: false,
+      error: '',
+    });
   }
 
   async function signOut() {
@@ -105,6 +146,7 @@ export function AuthProvider({ children }) {
         status: 'unauthenticated',
         session: null,
         profile: null,
+        mustChangePassword: false,
         error: logoutError?.message ?? '',
       });
     }
@@ -115,7 +157,15 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...auth, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        ...auth,
+        signIn,
+        signOut,
+        completePasswordChange,
+        finishPasswordChange,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

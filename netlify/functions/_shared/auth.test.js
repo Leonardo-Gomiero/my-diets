@@ -169,6 +169,41 @@ describe('authorization helpers', () => {
       expect.objectContaining({ code: 'PASSWORD_CHANGE_REQUIRED' }),
     );
   });
+
+  it('rejects forced-change students by default on authenticated data requests', async () => {
+    const pendingStudent = {
+      ...activeStudent,
+      must_change_password: true,
+    };
+    const readDiet = vi.fn();
+    const createVerifierClient = () =>
+      verifierClient({ data: { user }, error: null });
+    const createProfileClient = () =>
+      profileClient({ data: pendingStudent, error: null }).client;
+
+    try {
+      const context = await authenticateRequest(request(), {
+        createVerifierClient,
+        createProfileClient,
+      });
+      readDiet(context);
+    } catch (error) {
+      expect(error).toMatchObject({
+        status: 403,
+        code: 'PASSWORD_CHANGE_REQUIRED',
+      });
+    }
+
+    expect(readDiet).not.toHaveBeenCalled();
+
+    await expect(
+      authenticateRequest(request(), {
+        createVerifierClient,
+        createProfileClient,
+        allowPasswordChange: true,
+      }),
+    ).resolves.toEqual({ user, profile: pendingStudent });
+  });
 });
 
 describe('Supabase server clients', () => {

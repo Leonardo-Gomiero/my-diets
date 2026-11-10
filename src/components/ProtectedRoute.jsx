@@ -7,7 +7,7 @@ const ROLE_HOME = {
 };
 
 export default function ProtectedRoute({ allowedRole }) {
-  const { status, session, profile } = useAuth();
+  const { status, session, profile, mustChangePassword } = useAuth();
   const location = useLocation();
 
   if (status === 'loading' || status === 'authenticating') {
@@ -20,6 +20,10 @@ export default function ProtectedRoute({ allowedRole }) {
 
   if (!session) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (mustChangePassword || status === 'password_change_required') {
+    return <Navigate to="/change-password" replace />;
   }
 
   if (allowedRole && profile?.role !== allowedRole) {

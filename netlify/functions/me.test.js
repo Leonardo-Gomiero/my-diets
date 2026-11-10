@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import me from './me.js';
+import { HttpError } from './_shared/http.js';
 
 function request(method = 'GET') {
   return new Request('https://example.test/api/me', {
@@ -43,6 +44,23 @@ describe('GET /api/me', () => {
       expect(response.status).toBe(403);
       expect(await response.json()).toHaveProperty('error');
     }
+  });
+
+  it('does not return a protected profile during a required password change', async () => {
+    const response = await me(request(), {
+      authenticate: vi.fn().mockRejectedValue(
+        new HttpError(
+          403,
+          'PASSWORD_CHANGE_REQUIRED',
+          'Change your password before accessing this resource.',
+        ),
+      ),
+    });
+
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error.code).toBe('PASSWORD_CHANGE_REQUIRED');
+    expect(body).not.toHaveProperty('data');
   });
 
   it('rejects unsupported methods', async () => {

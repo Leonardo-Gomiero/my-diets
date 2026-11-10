@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  changeRequiredPassword,
   getApplicationProfile,
   restoreSession,
   signIn,
@@ -16,6 +17,13 @@ const profile = {
   role: 'ADMIN',
   is_active: true,
   must_change_password: false,
+};
+
+const passwordChangeRequired = {
+  error: {
+    code: 'PASSWORD_CHANGE_REQUIRED',
+    message: 'Change your password before accessing this resource.',
+  },
 };
 
 function fakeClient({
@@ -47,7 +55,11 @@ describe('Supabase Auth integration', () => {
 
     await expect(
       signIn(' PERSON@EXAMPLE.TEST ', 'secret', { client, fetchImpl }),
-    ).resolves.toEqual({ session, profile });
+    ).resolves.toEqual({
+      session,
+      profile,
+      mustChangePassword: false,
+    });
 
     expect(client.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'person@example.test',
@@ -56,6 +68,23 @@ describe('Supabase Auth integration', () => {
     expect(fetchImpl).toHaveBeenCalledWith('/api/me', {
       headers: { Authorization: 'Bearer test-access-token' },
     });
+  });
+
+  it('keeps a forced-change student signed in only for the password flow', async () => {
+    const client = fakeClient();
+    const fetchImpl = profileResponse({
+      body: passwordChangeRequired,
+      status: 403,
+    });
+
+    await expect(
+      signIn('person@example.test', 'temporary', { client, fetchImpl }),
+    ).resolves.toEqual({
+      session,
+      profile: null,
+      mustChangePassword: true,
+    });
+    expect(client.auth.signOut).not.toHaveBeenCalled();
   });
 
   it('signs out the session if the application profile is invalid', async () => {
@@ -111,6 +140,80 @@ describe('Supabase Auth integration', () => {
         }),
       ).rejects.toThrow('Your account could not be verified.');
     }
+  });
+
+  it('only treats the explicit password-change response as a forced change', async () => {
+    await expect(
+      getApplicationProfile(session, {
+        fetchImpl: profileResponse({
+          body: passwordChangeRequired,
+          status: 403,
+        }),
+      }),
+    ).resolves.toEqual({ profile: null, mustChangePassword: true });
+
+    await expect(
+      getApplicationProfile(session, {
+        fetchImpl: profileResponse({
+          body: { error: { code: 'ACCOUNT_INACTIVE' } },
+          status: 403,
+        }),
+      }),
+    ).rejects.toThrow('Your account could not be verified.');
+  });
+
+  it('confirms password completion by reloading the profile after the endpoint', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({
+          data: { password_change_required: false },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({ data: { profile } }),
+      });
+
+    await expect(
+      changeRequiredPassword(session, 'a-long-test-password', { fetchImpl }),
+    ).resolves.toEqual({ profile, mustChangePassword: false });
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      '/api/me/password',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      '/api/me',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer test-access-token' },
+      }),
+    );
+  });
+
+  it('keeps forced access when the password changed but profile clearing is pending', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: vi.fn().mockResolvedValue({
+          error: { code: 'PASSWORD_PROFILE_UPDATE_PENDING' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: vi.fn().mockResolvedValue(passwordChangeRequired),
+      });
+
+    await expect(
+      changeRequiredPassword(session, 'a-long-test-password', { fetchImpl }),
+    ).rejects.toThrow('password was changed, but account setup is still pending');
   });
 
   it('rejects a network failure while restoring an existing session', async () => {

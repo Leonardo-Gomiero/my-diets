@@ -40,6 +40,7 @@ export async function authenticateRequest(
   {
     createVerifierClient = createTokenVerifierClient,
     createProfileClient = createServerSupabaseClient,
+    allowPasswordChange = false,
   } = {},
 ) {
   const token = bearerTokenFrom(request);
@@ -93,6 +94,18 @@ export async function authenticateRequest(
 
   if (!profile || profile.id !== user.id) {
     throw new HttpError(403, 'PROFILE_NOT_FOUND', 'Account access is not set up.');
+  }
+
+  if (
+    !allowPasswordChange &&
+    profile.role === 'STUDENT' &&
+    profile.must_change_password
+  ) {
+    throw new HttpError(
+      403,
+      'PASSWORD_CHANGE_REQUIRED',
+      'Change your password before accessing this resource.',
+    );
   }
 
   return { user, profile };
