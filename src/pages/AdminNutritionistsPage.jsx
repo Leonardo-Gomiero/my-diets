@@ -3,6 +3,7 @@ import {
   FiCheck,
   FiCopy,
   FiEdit2,
+  FiKey,
   FiPlus,
   FiSearch,
   FiUser,
@@ -13,6 +14,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   createNutritionist,
   getNutritionists,
+  resetNutritionistPassword,
   setNutritionistActive,
   updateAdminLogin as saveAdminLogin,
   updateNutritionist,
@@ -167,6 +169,8 @@ export default function AdminNutritionistsPage() {
   const [loginSaved, setLoginSaved] = useState(false);
   const [savingLogin, setSavingLogin] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [credentialRecipient, setCredentialRecipient] = useState('');
+  const [credentialPurpose, setCredentialPurpose] = useState('created');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -198,6 +202,8 @@ export default function AdminNutritionistsPage() {
     setEditing(null);
     if (result.temporary_password) {
       setTemporaryPassword(result.temporary_password);
+      setCredentialRecipient(result.nutritionist.full_name);
+      setCredentialPurpose('created');
       setCopied(false);
     }
     try {
@@ -234,6 +240,33 @@ export default function AdminNutritionistsPage() {
           item.id === nutritionist.id ? { ...item, is_active: nextActive } : item,
         ),
       );
+    } catch (error) {
+      setPageError(error.message);
+    } finally {
+      setBusyId('');
+    }
+  }
+
+  async function restoreNutritionistPassword(nutritionist) {
+    if (
+      !window.confirm(
+        `Gerar uma nova senha temporária para ${nutritionist.full_name}? A senha atual deixará de funcionar e o nutricionista precisará criar uma nova senha no próximo acesso.`,
+      )
+    ) {
+      return;
+    }
+
+    setBusyId(nutritionist.id);
+    setPageError('');
+    setTemporaryPassword('');
+    try {
+      const result = await resetNutritionistPassword(nutritionist.id, {
+        accessToken: session?.access_token,
+      });
+      setTemporaryPassword(result.temporary_password);
+      setCredentialRecipient(result.nutritionist.full_name);
+      setCredentialPurpose('reset');
+      setCopied(false);
     } catch (error) {
       setPageError(error.message);
     } finally {
@@ -338,9 +371,16 @@ export default function AdminNutritionistsPage() {
       {temporaryPassword && (
         <section className="admin-credential" aria-live="polite">
           <div>
-            <span className="admin-eyebrow">ACESSO CRIADO</span>
-            <h2>Compartilhe a senha temporária com o nutricionista</h2>
-            <p>Ela será exibida somente agora. A troca é obrigatória no primeiro acesso.</p>
+            <span className="admin-eyebrow">
+              {credentialPurpose === 'reset' ? 'SENHA RESTAURADA' : 'ACESSO CRIADO'}
+            </span>
+            <h2>
+              Senha temporária de {credentialRecipient}
+            </h2>
+            <p>
+              Exibida somente agora. O nutricionista deverá criar uma nova senha
+              {credentialPurpose === 'reset' ? ' no próximo acesso.' : ' no primeiro acesso.'}
+            </p>
           </div>
           <code>{temporaryPassword}</code>
           <Button type="button" variant="quiet" onClick={copyTemporaryPassword}>
@@ -350,7 +390,10 @@ export default function AdminNutritionistsPage() {
           <button
             className="admin-credential__dismiss"
             type="button"
-            onClick={() => setTemporaryPassword('')}
+            onClick={() => {
+              setTemporaryPassword('');
+              setCredentialRecipient('');
+            }}
           >
             Fechar
           </button>
@@ -425,6 +468,25 @@ export default function AdminNutritionistsPage() {
                         >
                           <FiEdit2 aria-hidden="true" />
                           Editar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="quiet"
+                          disabled={
+                            busyId === nutritionist.id || !nutritionist.is_active
+                          }
+                          onClick={() => restoreNutritionistPassword(nutritionist)}
+                          aria-label={`Restaurar senha de ${nutritionist.full_name}`}
+                          title={
+                            nutritionist.is_active
+                              ? 'Gerar nova senha temporária'
+                              : 'Reative o nutricionista para restaurar a senha'
+                          }
+                        >
+                          <FiKey aria-hidden="true" />
+                          {busyId === nutritionist.id
+                            ? 'Salvando…'
+                            : 'Restaurar senha'}
                         </Button>
                         <Button
                           type="button"

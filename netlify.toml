@@ -20,6 +20,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/nutritionists/:id/temporary-password"
+  to = "/.netlify/functions/nutritionist-password?id=:id"
+  status = 200
+
+[[redirects]]
   from = "/api/patients/:id/diets/:dietId/activate"
   to = "/.netlify/functions/patient-diet-activate?studentId=:id&dietId=:dietId"
   status = 200

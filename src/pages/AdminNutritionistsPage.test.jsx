@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   createNutritionist,
   getNutritionists,
+  resetNutritionistPassword,
   setNutritionistActive,
   updateAdminLogin,
   updateNutritionist,
@@ -15,6 +16,7 @@ vi.mock('../context/AuthContext.jsx', () => ({ useAuth: vi.fn() }));
 vi.mock('../services/adminService.js', () => ({
   createNutritionist: vi.fn(),
   getNutritionists: vi.fn(),
+  resetNutritionistPassword: vi.fn(),
   setNutritionistActive: vi.fn(),
   updateAdminLogin: vi.fn(),
   updateNutritionist: vi.fn(),
@@ -36,6 +38,7 @@ beforeEach(() => {
   });
   getNutritionists.mockReset().mockResolvedValue([]);
   createNutritionist.mockReset();
+  resetNutritionistPassword.mockReset();
   updateNutritionist.mockReset();
   setNutritionistActive.mockReset();
   updateAdminLogin.mockReset();
@@ -109,5 +112,29 @@ describe('AdminNutritionistsPage', () => {
       { accessToken: 'admin-token' },
     );
     expect(screen.getByRole('status').textContent).toBe('Login atualizado.');
+  });
+
+  it('confirms a password reset and shows the one-time password', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    getNutritionists.mockResolvedValue([nutritionist]);
+    resetNutritionistPassword.mockResolvedValue({
+      nutritionist,
+      temporary_password: 'fresh-temporary-password',
+    });
+    render(<AdminNutritionistsPage />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Restaurar senha de Dra. Ana' }),
+    );
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Gerar uma nova senha temporária para Dra. Ana? A senha atual deixará de funcionar e o nutricionista precisará criar uma nova senha no próximo acesso.',
+    );
+    expect(await screen.findByText('fresh-temporary-password')).toBeTruthy();
+    expect(screen.getByText('Senha temporária de Dra. Ana')).toBeTruthy();
+    expect(resetNutritionistPassword).toHaveBeenCalledWith(
+      nutritionist.id,
+      { accessToken: 'admin-token' },
+    );
   });
 });

@@ -7,6 +7,10 @@ const API_ERROR_MESSAGES = {
   INVALID_PHONE: 'Confira o WhatsApp informado.',
   INVALID_STATUS: 'Informe um status válido.',
   NUTRITIONIST_NOT_FOUND: 'Nutricionista não encontrado.',
+  NUTRITIONIST_PASSWORD_LOCK_FAILED:
+    'Não foi possível bloquear o acesso do nutricionista. A senha não foi alterada.',
+  NUTRITIONIST_PASSWORD_RESET_PENDING:
+    'O acesso do nutricionista está bloqueado até a troca de senha, mas não foi possível confirmar a nova senha.',
   UNAUTHENTICATED: 'Sua sessão expirou. Entre novamente para continuar.',
 };
 
@@ -116,6 +120,26 @@ export async function setNutritionistActive(
     throw new Error('O serviço retornou uma resposta inválida.');
   }
   return result.nutritionist;
+}
+
+export async function resetNutritionistPassword(
+  id,
+  { accessToken, fetchImpl = fetch } = {},
+) {
+  const path = `/api/nutritionists/${encodeURIComponent(id)}/temporary-password`;
+  const result = await requestApi(path, {
+    accessToken,
+    fetchImpl,
+    method: 'POST',
+  });
+  if (
+    !result.nutritionist ||
+    result.nutritionist.id !== id ||
+    typeof result.temporary_password !== 'string'
+  ) {
+    throw new Error('O serviço retornou uma resposta inválida.');
+  }
+  return result;
 }
 
 export async function updateAdminLogin(
