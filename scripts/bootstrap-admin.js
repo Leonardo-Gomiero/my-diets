@@ -13,6 +13,14 @@ function requiredEnvironmentValue(name) {
   return value;
 }
 
+function describeApiError(error) {
+  const details = [];
+  if (error?.status) details.push(`HTTP ${error.status}`);
+  if (error?.code) details.push(`code: ${error.code}`);
+  if (error?.message) details.push(error.message);
+  return details.length ? details.join(' — ') : 'No additional error details were returned.';
+}
+
 async function findUserByEmail(client, email) {
   for (let page = 1; ; page += 1) {
     const result = await client.auth.admin.listUsers({ page, perPage: 1000 });
@@ -65,7 +73,9 @@ async function main() {
   ) {
     user = await findUserByEmail(client, email);
   } else {
-    throw new Error('Unable to create the initial administrator Auth account.');
+    throw new Error(
+      `Unable to create the initial administrator Auth account. ${describeApiError(createResult.error)}`,
+    );
   }
 
   if (!user?.id) {
@@ -78,7 +88,9 @@ async function main() {
     .eq('id', user.id)
     .maybeSingle();
   if (existingProfile.error) {
-    throw new Error('Unable to verify the initial administrator profile.');
+    throw new Error(
+      `Unable to verify the initial administrator profile. ${describeApiError(existingProfile.error)}`,
+    );
   }
   if (existingProfile.data) {
     if (
@@ -106,7 +118,9 @@ async function main() {
         throw new Error('Profile setup failed and the new Auth user could not be removed.');
       }
     }
-    throw new Error('Unable to create the initial administrator profile.');
+    throw new Error(
+      `Unable to create the initial administrator profile. ${describeApiError(profileResult.error)}`,
+    );
   }
 
   console.log(`Administrator provisioned. Login: ${login}. Change the temporary password on first sign-in.`);

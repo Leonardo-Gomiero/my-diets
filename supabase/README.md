@@ -60,6 +60,13 @@ The administrator username is mapped to a confirmed internal Auth address in
 the reserved `accounts.my-diets.test` domain; it is not a contact e-mail.
 Existing `/admin` patient-management screens are now under `/nutritionist`.
 
+The server-side Netlify Functions and the trusted bootstrap script use the
+Supabase `service_role` client after performing their own authentication and
+authorization checks. The migration
+`20261110205000_grant_service_role_table_access.sql` grants that database role
+CRUD access to the application tables; never expose its key to the browser or
+place it in a `VITE_` variable.
+
 ## Apply and validate migrations
 
 Use a local Supabase project with the Supabase CLI and Docker; do not point
