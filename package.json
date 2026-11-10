@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "bootstrap:admin": "node scripts/bootstrap-admin.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

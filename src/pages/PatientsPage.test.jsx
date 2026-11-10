@@ -109,9 +109,9 @@ describe('PatientsPage', () => {
       name: 'Dietas de Ana Exemplo',
     });
     expect(activeLink.textContent).toBe('Dietas');
-    expect(activeLink.getAttribute('href')).toBe('/admin/patients/patient-1/diets');
+    expect(activeLink.getAttribute('href')).toBe('/nutritionist/patients/patient-1/diets');
     expect(screen.getByRole('link', { name: 'Dietas de Bia Inativa' })
-      .getAttribute('href')).toBe('/admin/patients/patient-2/diets');
+      .getAttribute('href')).toBe('/nutritionist/patients/patient-2/diets');
     expect(screen.getByRole('button', { name: 'Opções de Ana Exemplo' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Opções de Bia Inativa' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Editar Ana Exemplo' })).toBeNull();

@@ -1,9 +1,10 @@
 import { getSupabaseClient } from './supabaseClient.js';
 
-const VALID_ROLES = new Set(['ADMIN', 'STUDENT']);
+const VALID_ROLES = new Set(['ADMIN', 'STUDENT', 'SUPERADMIN']);
+const ADMIN_LOGIN_DOMAIN = 'accounts.my-diets.test';
 
 function authenticationError() {
-  return new Error('E-mail ou senha incorretos.');
+  return new Error('Login ou senha incorretos.');
 }
 
 export async function getApplicationProfile(
@@ -100,13 +101,15 @@ export async function signIn(
   password,
   { client = getSupabaseClient(), fetchImpl = fetch } = {},
 ) {
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!normalizedEmail || !password) {
-    throw new Error('Informe seu e-mail e sua senha para continuar.');
+  const normalizedLogin = email.trim().toLowerCase();
+  if (!normalizedLogin || !password) {
+    throw new Error('Informe seu login e sua senha para continuar.');
   }
 
   const { data, error } = await client.auth.signInWithPassword({
-    email: normalizedEmail,
+    email: normalizedLogin.includes('@')
+      ? normalizedLogin
+      : `${normalizedLogin}@${ADMIN_LOGIN_DOMAIN}`,
     password,
   });
 

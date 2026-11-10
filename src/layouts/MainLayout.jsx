@@ -24,16 +24,29 @@ export default function MainLayout({ children }) {
   return (
     <div className="main-layout">
       <header className="topbar">
-        <Link className="brand" to={profile.role === 'ADMIN' ? '/admin' : '/student'}>
+        <Link
+          className="brand"
+          to={
+            profile.role === 'SUPERADMIN'
+              ? '/admin'
+              : profile.role === 'ADMIN'
+                ? '/nutritionist'
+                : '/student'
+          }
+        >
           <span className="brand__icon">
             <FiActivity aria-hidden="true" />
           </span>
           <span>my diets</span>
         </Link>
         <div className="topbar__account">
-          <span className="topbar__email">{session.user.email}</span>
+          <span className="topbar__email">
+            {profile.role === 'SUPERADMIN'
+              ? profile.admin_login
+              : session.user.email}
+          </span>
           {profile.role === 'ADMIN' && (
-            <Link className="topbar__profile" to="/admin/profile">
+            <Link className="topbar__profile" to="/nutritionist/profile">
               <FiUser aria-hidden="true" />
               <span>Meu perfil</span>
             </Link>

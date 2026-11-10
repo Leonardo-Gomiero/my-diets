@@ -2,7 +2,7 @@ import { authenticateRequest } from './_shared/auth.js';
 import { HttpError, errorResponse, successResponse } from './_shared/http.js';
 import { createServerSupabaseClient } from './_shared/supabase.js';
 
-const VALID_ROLES = new Set(['ADMIN', 'STUDENT']);
+const VALID_ROLES = new Set(['ADMIN', 'STUDENT', 'SUPERADMIN']);
 
 export default async function me(
   request,
@@ -36,7 +36,14 @@ export default async function me(
       ? nutritionistDetails[0]
       : nutritionistDetails;
 
-    if (profile.role === 'ADMIN') {
+    if (profile.role === 'ADMIN' || profile.role === 'SUPERADMIN') {
+      if (profile.role === 'SUPERADMIN') {
+        return successResponse({
+          user: { id: user.id, email: user.email },
+          profile: publicProfile,
+        });
+      }
+
       return successResponse({
         user: { id: user.id, email: user.email },
         profile: {

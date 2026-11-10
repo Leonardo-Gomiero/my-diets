@@ -29,6 +29,41 @@ describe('GET /api/me', () => {
     await expect(response.json()).resolves.toEqual({ data: context });
   });
 
+  it('returns the platform administrator identity without nutritionist data', async () => {
+    const response = await me(request(), {
+      authenticate: vi.fn().mockResolvedValue({
+        user: { id: 'admin-user-id', email: 'admin@accounts.my-diets.test' },
+        profile: {
+          id: 'admin-user-id',
+          full_name: 'Administrador',
+          role: 'SUPERADMIN',
+          admin_login: 'admin',
+          is_active: true,
+          must_change_password: false,
+        },
+      }),
+      createAdminClient: vi.fn(),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      data: {
+        user: {
+          id: 'admin-user-id',
+          email: 'admin@accounts.my-diets.test',
+        },
+        profile: {
+          id: 'admin-user-id',
+          full_name: 'Administrador',
+          role: 'SUPERADMIN',
+          admin_login: 'admin',
+          is_active: true,
+          must_change_password: false,
+        },
+      },
+    });
+  });
+
   it('returns the responsible nutritionist contact to a patient', async () => {
     const profile = {
       id: 'patient-id',

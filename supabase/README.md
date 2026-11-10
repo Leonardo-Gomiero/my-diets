@@ -30,6 +30,36 @@ requires an explicit ownership decision instead of guessing.
    `authenticated` role: clients have no policy to insert an admin profile, and
    the admin policy only permits inserting `STUDENT` profiles.
 
+## Provision the platform administrator
+
+Apply the migrations, then provision the separate platform administrator
+through the trusted Node script. It uses the service-role key only on the
+server/operator machine and creates a `SUPERADMIN` account separate from the
+existing nutritionist `ADMIN` role:
+
+```sh
+SUPABASE_URL="https://<project>.supabase.co" \
+SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" \
+npm run bootstrap:admin
+```
+
+By default the initial login is `admin` and the temporary password is
+`admin123`. The password must be changed to one with at least 12 characters
+before any other application route is available. To choose another temporary
+credential, set `ADMIN_INITIAL_LOGIN` and `ADMIN_INITIAL_PASSWORD` when running
+the script. The script does not reset credentials when run again. Never expose
+the service-role key through a `VITE_` variable, the browser, source control, or
+logs.
+
+The administrator signs in with the username (not an e-mail address), can
+change that username in the administrator dashboard, and can manage
+nutritionists. Nutritionist accounts use their e-mail and receive a generated
+temporary password. Deactivating a nutritionist preserves their account,
+patients, and diet history; the administrator can reactivate the account.
+The administrator username is mapped to a confirmed internal Auth address in
+the reserved `accounts.my-diets.test` domain; it is not a contact e-mail.
+Existing `/admin` patient-management screens are now under `/nutritionist`.
+
 ## Apply and validate migrations
 
 Use a local Supabase project with the Supabase CLI and Docker; do not point

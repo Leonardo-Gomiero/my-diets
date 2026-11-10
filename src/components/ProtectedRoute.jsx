@@ -2,7 +2,8 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const ROLE_HOME = {
-  ADMIN: '/admin',
+  SUPERADMIN: '/admin',
+  ADMIN: '/nutritionist',
   STUDENT: '/student',
 };
 

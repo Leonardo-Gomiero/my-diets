@@ -10,6 +10,7 @@ const MIN_PASSWORD_LENGTH = 12;
 export default function ChangePassword() {
   const {
     session,
+    profile,
     completePasswordChange,
     finishPasswordChange,
     signOut,
@@ -44,9 +45,14 @@ export default function ChangePassword() {
       setSuccess('Senha atualizada. Seu acesso foi confirmado.');
       window.setTimeout(() => {
         finishPasswordChange(result);
-        navigate(result.profile.role === 'ADMIN' ? '/admin' : '/student', {
-          replace: true,
-        });
+        navigate(
+          result.profile.role === 'SUPERADMIN'
+            ? '/admin'
+            : result.profile.role === 'ADMIN'
+              ? '/nutritionist'
+              : '/student',
+          { replace: true },
+        );
       }, 900);
     } catch (submitError) {
       setError(submitError.message);
@@ -73,7 +79,12 @@ export default function ChangePassword() {
         Por segurança, atualize a senha temporária antes de continuar.
       </p>
       <p className="password-change__account">
-        Conta: {session?.user?.email ?? 'aluno'}
+        Conta: {
+          profile?.admin_login ??
+          (session?.user?.email?.endsWith('@accounts.my-diets.test')
+            ? 'Administrador'
+            : session?.user?.email ?? 'aluno')
+        }
       </p>
 
       <form className="password-change__form" onSubmit={handleSubmit}>

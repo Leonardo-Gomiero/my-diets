@@ -759,7 +759,7 @@ export default function PatientsPage() {
                   <td className="patient-actions">
                     <a
                       className="button button--quiet"
-                      href={`/admin/patients/${encodeURIComponent(patient.id)}/diets`}
+                      href={`/nutritionist/patients/${encodeURIComponent(patient.id)}/diets`}
                       aria-label={`Dietas de ${patient.full_name}`}
                     >
                       Dietas

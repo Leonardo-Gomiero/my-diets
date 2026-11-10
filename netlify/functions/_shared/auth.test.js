@@ -65,7 +65,7 @@ describe('authenticateRequest', () => {
     expect(verifier.auth.getUser).toHaveBeenCalledWith('test-token');
     expect(profile.from).toHaveBeenCalledWith('profiles');
     expect(profile.select).toHaveBeenCalledWith(
-      'id, full_name, role, is_active, must_change_password, nutritionist_id, nutritionist_details(phone)',
+      'id, full_name, role, is_active, must_change_password, admin_login, nutritionist_id, nutritionist_details(phone)',
     );
     expect(profile.eq).toHaveBeenCalledWith('id', user.id);
   });

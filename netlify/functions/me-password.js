@@ -50,7 +50,7 @@ async function passwordFlagIsCleared(client, userId) {
 
   return (
     result.data?.id === userId &&
-    result.data.role === 'STUDENT' &&
+    ['ADMIN', 'STUDENT', 'SUPERADMIN'].includes(result.data.role) &&
     result.data.is_active === true &&
     result.data.must_change_password === false
   );
@@ -73,7 +73,9 @@ export default async function changePassword(
   try {
     const { user, profile } = await authenticate(request);
     requireActiveAccount({ user, profile });
-    requireRole({ user, profile }, 'STUDENT');
+    if (!['ADMIN', 'STUDENT', 'SUPERADMIN'].includes(profile.role)) {
+      requireRole({ user, profile }, 'STUDENT');
+    }
     const password = await readPassword(request);
     const client = createAdminClient();
 
@@ -114,7 +116,7 @@ export default async function changePassword(
         .from('profiles')
         .update({ must_change_password: false })
         .eq('id', user.id)
-        .eq('role', 'STUDENT')
+        .in('role', ['ADMIN', 'STUDENT', 'SUPERADMIN'])
         .eq('is_active', true)
         .eq('must_change_password', true)
         .select('id')

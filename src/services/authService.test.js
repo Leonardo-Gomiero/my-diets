@@ -70,6 +70,32 @@ describe('Supabase Auth integration', () => {
     });
   });
 
+  it('maps a username login to the administrator Auth identity', async () => {
+    const client = fakeClient();
+    const fetchImpl = profileResponse({
+      body: {
+        data: {
+          profile: {
+            ...profile,
+            role: 'SUPERADMIN',
+            admin_login: 'admin',
+          },
+        },
+      },
+    });
+
+    await expect(
+      signIn(' Admin ', 'admin123', { client, fetchImpl }),
+    ).resolves.toMatchObject({
+      profile: { role: 'SUPERADMIN', admin_login: 'admin' },
+      mustChangePassword: false,
+    });
+    expect(client.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'admin@accounts.my-diets.test',
+      password: 'admin123',
+    });
+  });
+
   it('keeps a forced-change student signed in only for the password flow', async () => {
     const client = fakeClient();
     const fetchImpl = profileResponse({

@@ -64,20 +64,20 @@ const activeDiet = {
   }],
 };
 
-function renderEditor(path = '/admin/patients/patient-1/diet') {
+function renderEditor(path = '/nutritionist/patients/patient-1/diet') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/admin/patients/:patientId/diet" element={<DietEditorPage />} />
+        <Route path="/nutritionist/patients/:patientId/diet" element={<DietEditorPage />} />
         <Route
-          path="/admin/patients/:patientId/diets/:dietId/edit"
+          path="/nutritionist/patients/:patientId/diets/:dietId/edit"
           element={<DietEditorPage />}
         />
         <Route
-          path="/admin/patients/:patientId/diets"
+          path="/nutritionist/patients/:patientId/diets"
           element={<CurrentPath />}
         />
-        <Route path="/admin" element={<CurrentPath />} />
+        <Route path="/nutritionist" element={<CurrentPath />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -197,7 +197,7 @@ describe('DietEditorPage', () => {
       version: 5,
       status: 'DRAFT',
     });
-    renderEditor('/admin/patients/patient-1/diets/diet-existing/edit');
+    renderEditor('/nutritionist/patients/patient-1/diets/diet-existing/edit');
 
     expect(await screen.findByRole('heading', { name: 'Editar dieta' })).toBeTruthy();
     expect(screen.getByLabelText('Título da dieta').value).toBe('Plano existente');
@@ -262,6 +262,6 @@ describe('DietEditorPage', () => {
     confirm.mockReturnValue(true);
     fireEvent.click(screen.getByRole('button', { name: 'Sair do editor' }));
     expect((await screen.findByTestId('current-path')).textContent)
-      .toBe('/admin/patients/patient-1/diets');
+      .toBe('/nutritionist/patients/patient-1/diets');
   });
 });

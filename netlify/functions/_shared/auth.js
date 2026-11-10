@@ -72,7 +72,7 @@ export async function authenticateRequest(
     profileResult = await createProfileClient()
       .from('profiles')
       .select(
-        'id, full_name, role, is_active, must_change_password, nutritionist_id, nutritionist_details(phone)',
+        'id, full_name, role, is_active, must_change_password, admin_login, nutritionist_id, nutritionist_details(phone)',
       )
       .eq('id', user.id)
       .maybeSingle();
@@ -102,11 +102,7 @@ export async function authenticateRequest(
     throw new HttpError(403, 'ACCOUNT_INACTIVE', 'This account is inactive.');
   }
 
-  if (
-    !allowPasswordChange &&
-    profile.role === 'STUDENT' &&
-    profile.must_change_password
-  ) {
+  if (!allowPasswordChange && profile.must_change_password) {
     throw new HttpError(
       403,
       'PASSWORD_CHANGE_REQUIRED',
@@ -137,6 +133,10 @@ export function requireRole(context, role) {
 
 export function requireAdmin(context) {
   return requireRole(context, 'ADMIN');
+}
+
+export function requireSuperAdmin(context) {
+  return requireRole(context, 'SUPERADMIN');
 }
 
 export function requirePasswordChangeComplete(context) {

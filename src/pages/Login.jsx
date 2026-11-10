@@ -26,9 +26,14 @@ export default function Login() {
 
     try {
       const { profile } = await signIn(email, password);
-      navigate(profile.role === 'ADMIN' ? '/admin' : '/student', {
-        replace: true,
-      });
+      navigate(
+        profile.role === 'SUPERADMIN'
+          ? '/admin'
+          : profile.role === 'ADMIN'
+            ? '/nutritionist'
+            : '/student',
+        { replace: true },
+      );
     } catch (loginError) {
       setError(loginError.message || 'Não foi possível entrar. Tente novamente.');
     } finally {
@@ -46,14 +51,14 @@ export default function Login() {
 
       <form className="login-form" onSubmit={handleSubmit}>
         <label className="form-field">
-          <span>E-mail</span>
+          <span>E-mail ou login</span>
           <span className="form-field__control">
             <FiMail aria-hidden="true" />
             <input
-              autoComplete="email"
-              type="email"
-              name="email"
-              placeholder="voce@exemplo.com"
+              autoComplete="username"
+              type="text"
+              name="login"
+              placeholder="E-mail ou login"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required

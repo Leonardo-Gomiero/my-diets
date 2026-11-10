@@ -116,7 +116,7 @@ export default function DietsPage() {
 
   return (
     <section className="diets-page" aria-labelledby="diets-page-title">
-      <Link className="diets-page__back" to="/admin">
+      <Link className="diets-page__back" to="/nutritionist">
         <FiArrowLeft aria-hidden="true" />
         Voltar aos pacientes
       </Link>
@@ -128,7 +128,7 @@ export default function DietsPage() {
         </div>
         <Link
           className="button button--primary diets-page__new"
-          to={`/admin/patients/${encodeURIComponent(patientId)}/diet`}
+          to={`/nutritionist/patients/${encodeURIComponent(patientId)}/diet`}
         >
           <FiPlus aria-hidden="true" />
           Nova dieta
@@ -187,7 +187,7 @@ export default function DietsPage() {
               <div className="diets-page__actions">
                 <Link
                   className="button button--quiet"
-                  to={`/admin/patients/${encodeURIComponent(patientId)}/diets/${encodeURIComponent(diet.id)}/edit`}
+                  to={`/nutritionist/patients/${encodeURIComponent(patientId)}/diets/${encodeURIComponent(diet.id)}/edit`}
                   aria-label={`Editar versão ${diet.version}`}
                 >
                   Editar

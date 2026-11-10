@@ -56,7 +56,7 @@ export default function NutritionistProfilePage() {
 
   return (
     <section className="nutritionist-profile" aria-labelledby="nutritionist-profile-title">
-      <Link className="nutritionist-profile__back" to="/admin">
+      <Link className="nutritionist-profile__back" to="/nutritionist">
         <FiArrowLeft aria-hidden="true" />
         Voltar aos pacientes
       </Link>

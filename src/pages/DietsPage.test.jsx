@@ -43,9 +43,9 @@ const archived = {
 
 function renderDiets() {
   return render(
-    <MemoryRouter initialEntries={['/admin/patients/patient-1/diets']}>
+    <MemoryRouter initialEntries={['/nutritionist/patients/patient-1/diets']}>
       <Routes>
-        <Route path="/admin/patients/:patientId/diets" element={<DietsPage />} />
+        <Route path="/nutritionist/patients/:patientId/diets" element={<DietsPage />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -78,9 +78,9 @@ describe('DietsPage', () => {
     expect(screen.getByRole('heading', { name: 'Plano novo' })).toBeTruthy();
     expect(screen.getByText('Arquivada')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Editar versão 1' }).getAttribute('href'))
-      .toBe('/admin/patients/patient-1/diets/diet-1/edit');
+      .toBe('/nutritionist/patients/patient-1/diets/diet-1/edit');
     expect(screen.getByRole('link', { name: 'Editar versão 2' }).getAttribute('href'))
-      .toBe('/admin/patients/patient-1/diets/diet-2/edit');
+      .toBe('/nutritionist/patients/patient-1/diets/diet-2/edit');
     expect(screen.getByRole('button', { name: 'Ativar versão 2' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Ativar versão 3' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Versão 1 ativada' }).disabled).toBe(true);
@@ -187,7 +187,7 @@ describe('DietsPage', () => {
     renderDiets();
 
     const newDietLink = await screen.findByRole('link', { name: 'Nova dieta' });
-    expect(newDietLink.getAttribute('href')).toBe('/admin/patients/patient-1/diet');
+    expect(newDietLink.getAttribute('href')).toBe('/nutritionist/patients/patient-1/diet');
   });
 
   it('duplicates a diet as a draft and reloads the history', async () => {

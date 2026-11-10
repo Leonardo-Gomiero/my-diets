@@ -365,7 +365,7 @@ export default function DietEditorPage() {
       return;
     }
     hasChangesRef.current = false;
-    navigate(`/admin/patients/${encodeURIComponent(patientId)}/diets`);
+    navigate(`/nutritionist/patients/${encodeURIComponent(patientId)}/diets`);
   }
 
   async function handleSubmit(event) {

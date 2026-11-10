@@ -149,6 +149,17 @@ export function AuthProvider({ children }) {
     }));
   }
 
+  function updateAdminLogin(adminLogin) {
+    if (auth.profile?.role !== 'SUPERADMIN') {
+      throw new Error('Não foi possível atualizar o login desta conta.');
+    }
+
+    setAuth((current) => ({
+      ...current,
+      profile: { ...current.profile, admin_login: adminLogin },
+    }));
+  }
+
   async function signOut() {
     let logoutError;
     try {
@@ -179,6 +190,7 @@ export function AuthProvider({ children }) {
         completePasswordChange,
         finishPasswordChange,
         updateProfile,
+        updateAdminLogin,
       }}
     >
       {children}

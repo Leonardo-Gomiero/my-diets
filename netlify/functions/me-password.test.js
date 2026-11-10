@@ -26,23 +26,18 @@ function mockAdminClient({
   readResult = { data: { id: 'student-id', role: 'STUDENT', is_active: true, must_change_password: false }, error: null },
 } = {}) {
   const calls = [];
-  const table = {
-    update: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              select: vi.fn(() => ({
-                maybeSingle: vi.fn(async () => {
-                  calls.push('profile');
-                  return updateResult;
-                }),
-              })),
-            })),
-          })),
-        })),
-      })),
+  const updateQuery = {
+    eq: vi.fn(() => updateQuery),
+    in: vi.fn(() => updateQuery),
+    select: vi.fn(() => ({
+      maybeSingle: vi.fn(async () => {
+        calls.push('profile');
+        return updateResult;
+      }),
     })),
+  };
+  const table = {
+    update: vi.fn(() => updateQuery),
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
         maybeSingle: vi.fn(async () => {
@@ -144,7 +139,7 @@ describe('POST /api/me/password', () => {
     });
   });
 
-  it('requires an active student and a valid password', async () => {
+  it('requires an active account and a valid password', async () => {
     const inactive = await changePassword(request(), {
       authenticate: vi.fn().mockResolvedValue({
         user: { id: 'student-id' },
@@ -154,14 +149,19 @@ describe('POST /api/me/password', () => {
     });
     expect(inactive.status).toBe(403);
 
-    const admin = await changePassword(request(), {
+    const inactiveAdmin = await changePassword(request(), {
       authenticate: vi.fn().mockResolvedValue({
         user: { id: 'admin-id' },
-        profile: { ...pendingProfile(), id: 'admin-id', role: 'ADMIN' },
+        profile: {
+          ...pendingProfile(),
+          id: 'admin-id',
+          role: 'SUPERADMIN',
+          is_active: false,
+        },
       }),
       createAdminClient: vi.fn(),
     });
-    expect(admin.status).toBe(403);
+    expect(inactiveAdmin.status).toBe(403);
 
     const invalidPassword = await changePassword(request('short'), {
       authenticate: vi.fn().mockResolvedValue({
@@ -171,6 +171,29 @@ describe('POST /api/me/password', () => {
       createAdminClient: vi.fn(),
     });
     expect(invalidPassword.status).toBe(400);
+  });
+
+  it('supports the forced password change for the platform administrator', async () => {
+    const { client } = mockAdminClient({
+      updateResult: { data: { id: 'admin-id' }, error: null },
+    });
+    const response = await changePassword(request(), {
+      authenticate: vi.fn().mockResolvedValue({
+        user: { id: 'admin-id' },
+        profile: {
+          ...pendingProfile(),
+          id: 'admin-id',
+          role: 'SUPERADMIN',
+        },
+      }),
+      createAdminClient: () => client,
+    });
+
+    expect(response.status).toBe(200);
+    expect(client.auth.admin.updateUserById).toHaveBeenCalledWith(
+      'admin-id',
+      { password: 'a-long-test-password' },
+    );
   });
 
   it('recovers idempotently if the profile flag was already cleared', async () => {
