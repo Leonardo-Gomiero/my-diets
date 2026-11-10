@@ -447,14 +447,14 @@ export default function AdminNutritionistsPage() {
                     </th>
                     <td data-label="E-mail">{nutritionist.email}</td>
                     <td data-label="WhatsApp">{nutritionist.phone || '—'}</td>
-                    <td data-label="Status">
+                    <td className="admin-status-cell" data-label="Status">
                       <span
                         className={`admin-status ${nutritionist.is_active ? 'admin-status--active' : 'admin-status--inactive'}`}
                       >
                         {nutritionist.is_active ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
-                    <td data-label="">
+                    <td className="admin-actions-cell" data-label="">
                       <div className="admin-row-actions">
                         <Button
                           type="button"
