@@ -85,6 +85,7 @@ describe('GET /api/patients', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store, private');
     expect(query.eq).toHaveBeenCalledWith('role', 'STUDENT');
+    expect(query.eq).toHaveBeenCalledWith('nutritionist_id', 'admin-id');
     expect(client.auth.admin.listUsers).toHaveBeenCalledWith({
       page: 1,
       perPage: 1000,

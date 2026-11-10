@@ -29,6 +29,58 @@ describe('GET /api/me', () => {
     await expect(response.json()).resolves.toEqual({ data: context });
   });
 
+  it('returns the responsible nutritionist contact to a patient', async () => {
+    const profile = {
+      id: 'patient-id',
+      full_name: 'Paciente',
+      role: 'STUDENT',
+      is_active: true,
+      must_change_password: false,
+      nutritionist_id: 'nutritionist-id',
+      nutritionist_details: null,
+    };
+    const query = {
+      select: vi.fn(() => query),
+      eq: vi.fn(() => query),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: 'nutritionist-id',
+          full_name: 'Dra. Nutri',
+          nutritionist_details: [{ phone: '+55 11 99999-9999' }],
+        },
+        error: null,
+      }),
+    };
+
+    const response = await me(request(), {
+      authenticate: vi.fn().mockResolvedValue({
+        user: { id: 'patient-id', email: 'patient@example.test' },
+        profile,
+      }),
+      createAdminClient: () => ({ from: vi.fn(() => query) }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      data: {
+        user: { id: 'patient-id', email: 'patient@example.test' },
+        profile: {
+          id: 'patient-id',
+          full_name: 'Paciente',
+          role: 'STUDENT',
+          is_active: true,
+          must_change_password: false,
+          nutritionist_id: 'nutritionist-id',
+        },
+        nutritionist: {
+          id: 'nutritionist-id',
+          full_name: 'Dra. Nutri',
+          whatsapp: '+55 11 99999-9999',
+        },
+      },
+    });
+  });
+
   it('rejects inactive accounts and invalid roles', async () => {
     for (const profile of [
       { id: 'auth-user-id', role: 'ADMIN', is_active: false },

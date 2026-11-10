@@ -1,4 +1,4 @@
-import { FiActivity, FiLogOut } from 'react-icons/fi';
+import { FiActivity, FiLogOut, FiUser } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -32,6 +32,12 @@ export default function MainLayout({ children }) {
         </Link>
         <div className="topbar__account">
           <span className="topbar__email">{session.user.email}</span>
+          {profile.role === 'ADMIN' && (
+            <Link className="topbar__profile" to="/admin/profile">
+              <FiUser aria-hidden="true" />
+              <span>Meu perfil</span>
+            </Link>
+          )}
           <Button
             className="topbar__logout"
             variant="quiet"

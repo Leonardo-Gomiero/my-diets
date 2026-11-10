@@ -54,7 +54,15 @@ export async function getApplicationProfile(
     throw new Error('O serviço de contas retornou uma resposta inválida.');
   }
 
-  const profile = result?.data?.profile;
+  const storedProfile = result?.data?.profile;
+  const profile = storedProfile
+    ? {
+        ...storedProfile,
+        ...(storedProfile.role === 'STUDENT'
+          ? { nutritionist: result?.data?.nutritionist ?? null }
+          : {}),
+      }
+    : null;
 
   if (
     !profile ||

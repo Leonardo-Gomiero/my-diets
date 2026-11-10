@@ -3,6 +3,7 @@ import { FiRefreshCw, FiSun } from 'react-icons/fi';
 import Button from '../components/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getActiveDiet } from '../services/activeDietService.js';
+import { whatsappUrl } from '../utils/contactLinks.js';
 import './ActiveDietPage.css';
 
 const NUTRIENTS = [
@@ -149,6 +150,29 @@ export default function ActiveDietPage() {
         </h1>
         <p>Consulte seu plano alimentar atual.</p>
       </header>
+
+      {profile?.nutritionist && (
+        <aside className="active-diet__nutritionist" aria-label="Contato do nutricionista">
+          <div>
+            <span>Seu nutricionista</span>
+            <strong>{profile.nutritionist.full_name}</strong>
+          </div>
+          {profile.nutritionist.whatsapp && whatsappUrl(profile.nutritionist.whatsapp) ? (
+            <a
+              href={whatsappUrl(profile.nutritionist.whatsapp)}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Conversar com ${profile.nutritionist.full_name} pelo WhatsApp`}
+            >
+              WhatsApp: {profile.nutritionist.whatsapp}
+            </a>
+          ) : (
+            <span className="active-diet__nutritionist-unavailable">
+              WhatsApp não informado
+            </span>
+          )}
+        </aside>
+      )}
 
       {status === 'loading' && (
         <div className="active-diet__message" role="status" aria-live="polite">

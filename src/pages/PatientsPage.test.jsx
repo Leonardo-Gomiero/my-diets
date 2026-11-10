@@ -110,6 +110,21 @@ describe('PatientsPage', () => {
       .getAttribute('href')).toBe('/admin/patients/patient-2/diets');
   });
 
+  it('provides email and WhatsApp links for patient contact', async () => {
+    getPatients.mockResolvedValue([
+      { ...samplePatient, phone: '(11) 99999-9999' },
+    ]);
+    render(<PatientsPage />);
+
+    const emailLink = await screen.findByRole('link', { name: 'ana@example.test' });
+    expect(emailLink.getAttribute('href')).toBe('mailto:ana@example.test');
+    const whatsappLink = screen.getByRole('link', {
+      name: 'Abrir WhatsApp de Ana Exemplo',
+    });
+    expect(whatsappLink.getAttribute('href')).toBe('https://wa.me/5511999999999');
+    expect(whatsappLink.getAttribute('target')).toBe('_blank');
+  });
+
   it('shows API load errors and retries without treating them as empty results', async () => {
     getPatients
       .mockRejectedValueOnce(new Error('A lista está indisponível.'))

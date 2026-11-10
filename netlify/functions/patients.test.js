@@ -115,6 +115,7 @@ describe('POST /api/patients', () => {
       id: 'created-patient-id',
       full_name: 'Sample Patient',
       role: 'STUDENT',
+      nutritionist_id: 'admin-id',
       must_change_password: true,
       is_active: true,
     });

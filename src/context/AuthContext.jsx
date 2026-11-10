@@ -135,6 +135,20 @@ export function AuthProvider({ children }) {
     });
   }
 
+  function updateProfile(updatedProfile) {
+    if (
+      auth.profile?.role !== 'ADMIN' ||
+      updatedProfile?.id !== auth.profile.id
+    ) {
+      throw new Error('Não foi possível atualizar o perfil desta conta.');
+    }
+
+    setAuth((current) => ({
+      ...current,
+      profile: { ...current.profile, ...updatedProfile },
+    }));
+  }
+
   async function signOut() {
     let logoutError;
     try {
@@ -164,6 +178,7 @@ export function AuthProvider({ children }) {
         signOut,
         completePasswordChange,
         finishPasswordChange,
+        updateProfile,
       }}
     >
       {children}

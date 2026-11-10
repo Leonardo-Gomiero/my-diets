@@ -191,13 +191,41 @@ function getId(request, parameter, code, label) {
   return id;
 }
 
+async function assertPatientOwnership(
+  client,
+  nutritionistId,
+  studentId,
+  unavailableCode,
+  unavailableMessage,
+) {
+  let result;
+  try {
+    result = await client
+      .from('profiles')
+      .select('id')
+      .eq('id', studentId)
+      .eq('role', 'STUDENT')
+      .eq('nutritionist_id', nutritionistId)
+      .maybeSingle();
+  } catch {
+    throw new HttpError(503, unavailableCode, unavailableMessage);
+  }
+
+  if (result.error) {
+    throw new HttpError(503, unavailableCode, unavailableMessage);
+  }
+  if (!result.data) {
+    throw new HttpError(404, 'PATIENT_NOT_FOUND', 'Paciente não encontrado.');
+  }
+}
+
 async function saveDraft(request, operation, dependencies) {
   const {
     authenticate = authenticateRequest,
     createAdminClient = createServerSupabaseClient,
   } = dependencies;
   try {
-    requireAdmin(await authenticate(request));
+    const context = requireAdmin(await authenticate(request));
     const studentId =
       operation === 'create'
         ? getId(request, 'id', 'INVALID_PATIENT_ID', 'paciente')
@@ -214,10 +242,54 @@ async function saveDraft(request, operation, dependencies) {
       throw invalidRequest('Envie uma solicitação JSON válida.');
     }
     const payload = validateDietPayload(body);
+    const client = createAdminClient();
+
+    if (operation === 'create') {
+      await assertPatientOwnership(
+        client,
+        context.user.id,
+        studentId,
+        'DIET_SAVE_UNAVAILABLE',
+        'Não foi possível salvar o rascunho. Tente novamente.',
+      );
+    } else {
+      let dietResult;
+      try {
+        dietResult = await client
+          .from('diets')
+          .select('student_id')
+          .eq('id', dietId)
+          .maybeSingle();
+      } catch {
+        throw new HttpError(
+          503,
+          'DIET_SAVE_UNAVAILABLE',
+          'Não foi possível salvar o rascunho. Tente novamente.',
+        );
+      }
+
+      if (dietResult.error) {
+        throw new HttpError(
+          503,
+          'DIET_SAVE_UNAVAILABLE',
+          'Não foi possível salvar o rascunho. Tente novamente.',
+        );
+      }
+      if (!dietResult.data) {
+        throw new HttpError(404, 'DIET_NOT_FOUND', 'Dieta não encontrada.');
+      }
+      await assertPatientOwnership(
+        client,
+        context.user.id,
+        dietResult.data.student_id,
+        'DIET_SAVE_UNAVAILABLE',
+        'Não foi possível salvar o rascunho. Tente novamente.',
+      );
+    }
 
     let result;
     try {
-      result = await createAdminClient().rpc('save_draft_diet', {
+      result = await client.rpc('save_draft_diet', {
         p_student_id: studentId,
         p_diet_id: dietId,
         p_payload: payload,
@@ -307,7 +379,7 @@ export async function getPatientDietHistory(
   }
 
   try {
-    requireAdmin(await authenticate(request));
+    const context = requireAdmin(await authenticate(request));
     const patientId = getId(request, 'id', 'INVALID_PATIENT_ID', 'paciente');
     const client = createAdminClient();
 
@@ -317,6 +389,7 @@ export async function getPatientDietHistory(
         .from('profiles')
         .select('id, role')
         .eq('id', patientId)
+        .eq('nutritionist_id', context.user.id)
         .maybeSingle();
     } catch {
       throw new HttpError(
@@ -403,13 +476,22 @@ export async function activateDietDraft(
   }
 
   try {
-    requireAdmin(await authenticate(request));
+    const context = requireAdmin(await authenticate(request));
     const studentId = getId(request, 'studentId', 'INVALID_PATIENT_ID', 'paciente');
     const dietId = getId(request, 'dietId', 'INVALID_DIET_ID', 'dieta');
+    const client = createAdminClient();
+
+    await assertPatientOwnership(
+      client,
+      context.user.id,
+      studentId,
+      'DIET_ACTIVATION_UNAVAILABLE',
+      'Não foi possível confirmar a ativação. Atualize o histórico antes de tentar novamente.',
+    );
 
     let result;
     try {
-      result = await createAdminClient().rpc('activate_draft_diet', {
+      result = await client.rpc('activate_draft_diet', {
         p_student_id: studentId,
         p_diet_id: dietId,
       });

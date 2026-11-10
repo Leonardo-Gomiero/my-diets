@@ -3,6 +3,12 @@
 The initial migration creates `public.profiles` and `public.student_details`.
 It does not create Auth users, profiles, passwords, or other personal data.
 
+The ownership migration adds `profiles.nutritionist_id`, assigns existing
+students to the sole active nutritionist, and creates `nutritionist_details`
+for the nutritionist's WhatsApp number. Existing students are assigned only
+when exactly one active nutritionist exists; otherwise the migration stops and
+requires an explicit ownership decision instead of guessing.
+
 ## Provision the first nutritionist
 
 1. In the Supabase Dashboard, create the nutritionist's Auth user using the
@@ -49,10 +55,10 @@ existing Auth UUIDs, create student profiles while acting as that admin:
 BEGIN;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '<ADMIN_UUID>', true);
-INSERT INTO public.profiles (id, full_name, role)
-VALUES ('<STUDENT_A_UUID>', 'Synthetic Student A', 'STUDENT');
-INSERT INTO public.profiles (id, full_name, role)
-VALUES ('<STUDENT_B_UUID>', 'Synthetic Student B', 'STUDENT');
+INSERT INTO public.profiles (id, full_name, role, nutritionist_id)
+VALUES ('<STUDENT_A_UUID>', 'Synthetic Student A', 'STUDENT', '<ADMIN_UUID>');
+INSERT INTO public.profiles (id, full_name, role, nutritionist_id)
+VALUES ('<STUDENT_B_UUID>', 'Synthetic Student B', 'STUDENT', '<ADMIN_UUID>');
 ROLLBACK;
 ```
 
@@ -76,10 +82,17 @@ ROLLBACK;
 ```
 
 Each student should see only their own profile and details; the admin should see
-their own profile and student profiles. To verify admin management, use a
+their own profile and assigned students. A student can also read the profile
+and WhatsApp details of their assigned nutritionist. To verify admin management, use a
 separate transaction with the admin subject to insert and update student
 profiles and details, then roll back. Permanent deletion is intentionally not
 granted; deactivate a student instead to preserve history.
+
+To validate tenant isolation, create a second active admin and a student
+assigned to that admin. Each admin must see, update, and manage diets only for
+students whose `nutritionist_id` matches their own UUID. Test both direct RLS
+reads and the Netlify patient/diet endpoints; the endpoints use `service_role`,
+so they perform explicit ownership checks independently of RLS.
 
 In separate transactions, verify that a student cannot insert a profile or
 update the `role` column (no insert policy and no column privilege), and that
@@ -174,7 +187,8 @@ Never use production credentials for local validation.
 With disposable Auth users and the local admin/student profiles, verify RLS by
 simulating each identity as described above:
 
-- The admin can insert, read, update, and delete diet content. A diet must
+- Each admin can insert, read, update, and delete diet content only for assigned
+  students. A diet must
   reference a profile whose database role is `STUDENT`; the role is checked
   from `profiles`, not accepted from request data.
 - Student A can select only their own `ACTIVE` diet and its meals, food groups,

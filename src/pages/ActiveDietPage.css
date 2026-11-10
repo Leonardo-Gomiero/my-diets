@@ -32,6 +32,42 @@
   margin: 0;
 }
 
+.active-diet__nutritionist {
+  align-items: center;
+  background: #f3f6f1;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+}
+
+.active-diet__nutritionist > div {
+  display: grid;
+  gap: 3px;
+}
+
+.active-diet__nutritionist > div span,
+.active-diet__nutritionist-unavailable {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.active-diet__nutritionist strong {
+  color: var(--color-ink);
+  font-size: 14px;
+}
+
+.active-diet__nutritionist a {
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
 .active-diet__plan,
 .active-diet__message {
   background: var(--color-surface);

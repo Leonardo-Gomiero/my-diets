@@ -18,16 +18,17 @@ function getPatientId(request) {
   return patientId;
 }
 
-async function getPatientRecord(client, patientId) {
+async function getPatientRecord(client, patientId, nutritionistId) {
   let result;
   try {
     result = await client
       .from('profiles')
       .select(
-        'id, full_name, role, is_active, must_change_password, created_at, student_details(phone)',
+        'id, full_name, role, nutritionist_id, is_active, must_change_password, created_at, student_details(phone)',
       )
       .eq('id', patientId)
       .eq('role', 'STUDENT')
+      .eq('nutritionist_id', nutritionistId)
       .maybeSingle();
   } catch {
     throw new HttpError(
@@ -119,10 +120,10 @@ export async function getPatient(
   }
 
   try {
-    requireAdmin(await authenticate(request));
+    const context = requireAdmin(await authenticate(request));
     const patientId = getPatientId(request);
     const client = createAdminClient();
-    const profile = await getPatientRecord(client, patientId);
+    const profile = await getPatientRecord(client, patientId, context.user.id);
     const authUser = await getAuthUser(client, patientId);
     return jsonResponse(
       200,
@@ -186,14 +187,15 @@ async function validateUpdateBody(request) {
   return { fullName, email, phone: phone || null };
 }
 
-async function restorePatient(client, patientId, profile, authUser) {
+async function restorePatient(client, patientId, nutritionistId, profile, authUser) {
   let restored = true;
   try {
     const profileResult = await client
       .from('profiles')
       .update({ full_name: profile.full_name })
       .eq('id', patientId)
-      .eq('role', 'STUDENT');
+      .eq('role', 'STUDENT')
+      .eq('nutritionist_id', nutritionistId);
     restored = restored && !profileResult.error;
   } catch {
     restored = false;
@@ -266,11 +268,11 @@ export async function updatePatient(
   }
 
   try {
-    requireAdmin(await authenticate(request));
+    const context = requireAdmin(await authenticate(request));
     const patientId = getPatientId(request);
     const input = await validateUpdateBody(request);
     const client = createAdminClient();
-    const profile = await getPatientRecord(client, patientId);
+    const profile = await getPatientRecord(client, patientId, context.user.id);
     const authUser = await getAuthUser(client, patientId);
     const previousDetails = Array.isArray(profile.student_details)
       ? profile.student_details[0]
@@ -282,7 +284,8 @@ export async function updatePatient(
         .from('profiles')
         .update({ full_name: input.fullName })
         .eq('id', patientId)
-        .eq('role', 'STUDENT');
+        .eq('role', 'STUDENT')
+        .eq('nutritionist_id', context.user.id);
       updateError = profileResult.error;
     } catch (error) {
       updateError = error;
@@ -319,7 +322,13 @@ export async function updatePatient(
     }
 
     if (updateError) {
-      const restored = await restorePatient(client, patientId, profile, authUser);
+      const restored = await restorePatient(
+        client,
+        patientId,
+        context.user.id,
+        profile,
+        authUser,
+      );
       if (!restored) {
         throw new HttpError(
           500,
@@ -363,7 +372,7 @@ export async function updatePatientStatus(
   }
 
   try {
-    requireAdmin(await authenticate(request));
+    const context = requireAdmin(await authenticate(request));
     const patientId = getPatientId(request);
     let body;
     try {
@@ -383,7 +392,7 @@ export async function updatePatientStatus(
     }
 
     const client = createAdminClient();
-    const profile = await getPatientRecord(client, patientId);
+    const profile = await getPatientRecord(client, patientId, context.user.id);
     if (profile.is_active === body.is_active) {
       return jsonResponse(
         200,
@@ -398,7 +407,8 @@ export async function updatePatientStatus(
         .from('profiles')
         .update({ is_active: body.is_active })
         .eq('id', patientId)
-        .eq('role', 'STUDENT');
+        .eq('role', 'STUDENT')
+        .eq('nutritionist_id', context.user.id);
     } catch {
       result = { error: true };
     }
@@ -436,10 +446,10 @@ export async function resetPatientPassword(
   }
 
   try {
-    requireAdmin(await authenticate(request));
+    const context = requireAdmin(await authenticate(request));
     const patientId = getPatientId(request);
     const client = createAdminClient();
-    const profile = await getPatientRecord(client, patientId);
+    const profile = await getPatientRecord(client, patientId, context.user.id);
     if (profile.is_active !== true) {
       throw new HttpError(403, 'ACCOUNT_INACTIVE', 'Não é possível redefinir a senha de uma conta inativa.');
     }
@@ -454,6 +464,7 @@ export async function resetPatientPassword(
         .update({ must_change_password: true })
         .eq('id', patientId)
         .eq('role', 'STUDENT')
+        .eq('nutritionist_id', context.user.id)
         .eq('is_active', true)
         .select('id, must_change_password')
         .maybeSingle();
@@ -502,8 +513,9 @@ export async function resetPatientPassword(
     try {
       confirmation = await client
         .from('profiles')
-        .select('id, role, is_active, must_change_password')
+        .select('id, role, nutritionist_id, is_active, must_change_password')
         .eq('id', patientId)
+        .eq('nutritionist_id', context.user.id)
         .maybeSingle();
     } catch {
       confirmation = { error: true };

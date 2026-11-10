@@ -98,6 +98,28 @@ describe('ActiveDietPage', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
+  it('shows the responsible nutritionist and a WhatsApp contact link', async () => {
+    useAuth.mockReturnValue({
+      session: { access_token: 'student-token' },
+      profile: {
+        full_name: 'Ana Exemplo',
+        role: 'STUDENT',
+        nutritionist: {
+          full_name: 'Dra. Maria',
+          whatsapp: '(11) 99999-9999',
+        },
+      },
+    });
+    getActiveDiet.mockResolvedValue(null);
+
+    render(<ActiveDietPage />);
+
+    expect(await screen.findByText('Dra. Maria')).toBeTruthy();
+    expect(screen.getByRole('link', {
+      name: 'Conversar com Dra. Maria pelo WhatsApp',
+    }).getAttribute('href')).toBe('https://wa.me/5511999999999');
+  });
+
   it('shows a recoverable error and retries the active-diet request', async () => {
     getActiveDiet
       .mockRejectedValueOnce(new Error('Serviço temporariamente indisponível.'))

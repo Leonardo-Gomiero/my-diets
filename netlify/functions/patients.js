@@ -47,6 +47,7 @@ export async function listPatients(
         .from('profiles')
         .select('id, full_name, is_active, created_at, student_details(phone)')
         .eq('role', 'STUDENT')
+        .eq('nutritionist_id', context.user.id)
         .order('full_name', { ascending: true });
     } catch {
       throw new HttpError(
@@ -279,6 +280,7 @@ async function createPatient(
           id: userId,
           full_name: fullName,
           role: 'STUDENT',
+          nutritionist_id: context.user.id,
           must_change_password: true,
           is_active: true,
         });

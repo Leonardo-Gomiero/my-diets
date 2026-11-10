@@ -100,11 +100,25 @@ function dietPayload() {
   };
 }
 
+function ownershipQuery(data) {
+  const query = {
+    select: vi.fn(() => query),
+    eq: vi.fn(() => query),
+    maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+  };
+  return query;
+}
+
 function setup({ data = { id: DIET_ID, student_id: PATIENT_ID, version: 3 }, error = null } = {}) {
   const rpc = vi.fn().mockResolvedValue({ data, error });
-  const createAdminClient = vi.fn(() => ({ rpc }));
+  const patientQuery = ownershipQuery({ id: PATIENT_ID });
+  const dietQuery = ownershipQuery({ student_id: PATIENT_ID });
+  const createAdminClient = vi.fn(() => ({
+    rpc,
+    from: (table) => table === 'profiles' ? patientQuery : dietQuery,
+  }));
   const authenticate = vi.fn().mockResolvedValue(adminContext());
-  return { rpc, createAdminClient, authenticate };
+  return { rpc, createAdminClient, authenticate, patientQuery, dietQuery };
 }
 
 describe('draft diet endpoints', () => {
@@ -133,6 +147,23 @@ describe('draft diet endpoints', () => {
       p_diet_id: null,
       p_payload: dietPayload(),
     });
+  });
+
+  it('does not create a diet for a patient assigned to another nutritionist', async () => {
+    const rpc = vi.fn();
+    const response = await createPatientDiet(
+      request(`/.netlify/functions/patient-diets?id=${PATIENT_ID}`, dietPayload(), 'POST'),
+      {
+        authenticate: vi.fn().mockResolvedValue(adminContext()),
+        createAdminClient: () => ({
+          rpc,
+          from: () => ownershipQuery(null),
+        }),
+      },
+    );
+
+    expect(response.status).toBe(404);
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   describe('diet history and activation endpoints', () => {
@@ -188,16 +219,17 @@ describe('draft diet endpoints', () => {
           {
             authenticate: vi.fn().mockResolvedValue(adminContext()),
             createAdminClient: () => ({
-              from: () => ({
-                select: () => ({
-                  eq: () => ({
-                    maybeSingle: vi.fn().mockResolvedValue({
-                      data: { id: PATIENT_ID, role: 'ADMIN' },
-                      error: null,
-                    }),
+              from: () => {
+                const query = {
+                  select: () => query,
+                  eq: () => query,
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { id: PATIENT_ID, role: 'ADMIN' },
+                    error: null,
                   }),
-                }),
-              }),
+                };
+                return query;
+              },
             }),
           },
         );
@@ -223,7 +255,7 @@ describe('draft diet endpoints', () => {
           ),
           {
             authenticate: vi.fn().mockResolvedValue(adminContext()),
-            createAdminClient: () => ({ rpc }),
+            createAdminClient: () => ({ rpc, from: () => ownershipQuery({ id: PATIENT_ID }) }),
           },
         );
 
@@ -256,7 +288,7 @@ describe('draft diet endpoints', () => {
           ),
           {
             authenticate: vi.fn().mockResolvedValue(adminContext('STUDENT')),
-            createAdminClient: () => ({ rpc }),
+            createAdminClient: () => ({ rpc, from: () => ownershipQuery({ id: PATIENT_ID }) }),
           },
         );
 
@@ -277,7 +309,7 @@ describe('draft diet endpoints', () => {
           ),
           {
             authenticate: vi.fn().mockResolvedValue(adminContext()),
-            createAdminClient: () => ({ rpc }),
+            createAdminClient: () => ({ rpc, from: () => ownershipQuery({ id: PATIENT_ID }) }),
           },
         );
 
@@ -301,7 +333,7 @@ describe('draft diet endpoints', () => {
           ),
           {
             authenticate: vi.fn().mockResolvedValue(adminContext()),
-            createAdminClient: () => ({ rpc }),
+            createAdminClient: () => ({ rpc, from: () => ownershipQuery({ id: PATIENT_ID }) }),
           },
         );
 
@@ -324,7 +356,7 @@ describe('draft diet endpoints', () => {
           ),
           {
             authenticate: vi.fn().mockResolvedValue(adminContext()),
-            createAdminClient: () => ({ rpc }),
+            createAdminClient: () => ({ rpc, from: () => ownershipQuery({ id: PATIENT_ID }) }),
           },
         );
 

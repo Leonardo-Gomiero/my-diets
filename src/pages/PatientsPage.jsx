@@ -10,6 +10,7 @@ import {
   updatePatient,
   updatePatientStatus,
 } from '../services/patientService.js';
+import { whatsappUrl } from '../utils/contactLinks.js';
 import './PatientsPage.css';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -629,8 +630,23 @@ export default function PatientsPage() {
               {patients.map((patient) => (
                 <tr key={patient.id}>
                   <th scope="row" data-label="Nome">{patient.full_name}</th>
-                  <td data-label="E-mail">{patient.email || '—'}</td>
-                  <td data-label="Telefone">{patient.phone || '—'}</td>
+                  <td data-label="E-mail">
+                    {patient.email ? (
+                      <a href={`mailto:${patient.email}`}>{patient.email}</a>
+                    ) : '—'}
+                  </td>
+                  <td data-label="Telefone">
+                    {patient.phone && whatsappUrl(patient.phone) ? (
+                      <a
+                        href={whatsappUrl(patient.phone)}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Abrir WhatsApp de ${patient.full_name}`}
+                      >
+                        {patient.phone}
+                      </a>
+                    ) : patient.phone || '—'}
+                  </td>
                   <td data-label="Status">
                     <span
                       className={`patient-status${patient.is_active ? '' : ' patient-status--inactive'}`}

@@ -23,6 +23,19 @@
   font-size: 13px;
 }
 
+.topbar__profile {
+  align-items: center;
+  color: var(--color-ink);
+  display: inline-flex;
+  font-size: 13px;
+  gap: 7px;
+  text-decoration: none;
+}
+
+.topbar__profile:hover {
+  color: var(--color-accent);
+}
+
 .topbar__logout {
   gap: 8px;
   min-height: 40px;
@@ -54,6 +67,10 @@
   }
 
   .topbar__email {
+    display: none;
+  }
+
+  .topbar__profile span {
     display: none;
   }
 

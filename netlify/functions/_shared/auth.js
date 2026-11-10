@@ -71,7 +71,9 @@ export async function authenticateRequest(
   try {
     profileResult = await createProfileClient()
       .from('profiles')
-      .select('id, role, is_active, must_change_password')
+      .select(
+        'id, full_name, role, is_active, must_change_password, nutritionist_id, nutritionist_details(phone)',
+      )
       .eq('id', user.id)
       .maybeSingle();
   } catch {
