@@ -476,24 +476,35 @@
   .patients-heading {
     align-items: flex-start;
     flex-direction: column;
+    gap: 12px;
+    margin-bottom: 22px;
   }
 
   .patients-heading > .button {
-    width: 100%;
+    min-height: 44px;
+    min-width: 0;
+    width: fit-content;
   }
 
   .patients-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 12px;
   }
 
   .patients-search {
     max-width: none;
+    min-width: 0;
   }
 
   .patients-count {
-    align-self: flex-end;
+    align-self: flex-start;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 11px;
+    padding: 5px 9px;
   }
 
   .patients-table-wrap {
@@ -506,7 +517,9 @@
   .patients-table,
   .patients-table tbody {
     display: grid;
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
+    width: 100%;
   }
 
   .patients-table thead {
@@ -524,8 +537,9 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     display: grid;
-    gap: 12px;
-    padding: 16px;
+    gap: 11px;
+    min-width: 0;
+    padding: 14px;
   }
 
   .patients-table th,
@@ -536,30 +550,61 @@
     display: flex;
     font-size: 13px;
     justify-content: space-between;
+    min-width: 0;
     padding: 0;
     text-align: right;
   }
 
   .patients-table tbody th {
     font-size: 14px;
+    overflow-wrap: anywhere;
+    text-align: left;
   }
 
   .patients-table td::before {
     color: var(--color-text-muted);
     content: attr(data-label);
+    flex: 0 0 auto;
     font-size: 11px;
     font-weight: 650;
-    margin-right: 12px;
+    margin-right: 8px;
     text-align: left;
+  }
+
+  .patients-table td:not(.patient-actions) > a,
+  .patients-table td:not(.patient-actions) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .patients-table tbody th::before {
     content: none;
   }
 
-  .patients-table .patient-actions {
-    align-items: center;
-    justify-content: flex-end;
+  .patients-table tbody tr td.patient-actions {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    white-space: normal;
+  }
+
+  .patients-table tbody tr td.patient-actions::before {
+    align-self: center;
+    grid-column: 1 / -1;
+    margin: 0;
+    text-align: left;
+  }
+
+  .patient-actions .button,
+  .patient-actions a {
+    font-size: 12px;
+    min-height: 40px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding: 6px 8px;
+    text-align: center;
+    white-space: normal;
+    width: 100%;
   }
 
   .patients-panel {

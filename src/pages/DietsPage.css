@@ -2,6 +2,8 @@
   color: var(--color-ink);
   margin: 0 auto;
   max-width: 900px;
+  min-width: 0;
+  width: 100%;
 }
 
 .diets-page__back {
@@ -11,7 +13,7 @@
   display: inline-flex;
   font-size: 13px;
   gap: 7px;
-  margin: -8px 0 20px -8px;
+  margin: -8px 0 16px -8px;
   min-height: 40px;
   padding: 0 8px;
   text-decoration: none;
@@ -23,11 +25,16 @@
 }
 
 .diets-page__heading {
-  align-items: flex-end;
+  align-items: stretch;
   display: flex;
-  gap: 18px;
-  justify-content: space-between;
-  margin-bottom: 24px;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+  min-width: 0;
+}
+
+.diets-page__heading > div {
+  min-width: 0;
 }
 
 .diets-page__heading .eyebrow {
@@ -40,11 +47,11 @@
 .diets-page__heading h1 {
   color: var(--color-ink);
   font-family: var(--font-display);
-  font-size: clamp(32px, 5vw, 46px);
+  font-size: clamp(32px, 9vw, 42px);
   font-weight: 500;
   letter-spacing: -1.5px;
   line-height: 1.1;
-  margin: 10px 0 7px;
+  margin: 8px 0 7px;
 }
 
 .diets-page__heading p {
@@ -52,10 +59,12 @@
   font-size: 14px;
   line-height: 1.5;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .diets-page__new {
   gap: 8px;
+  min-height: 44px;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -65,15 +74,17 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
+  min-width: 0;
 }
 
 .diets-page__state {
   align-items: center;
   color: var(--color-text-muted);
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  min-height: 130px;
-  padding: 24px;
+  min-height: 110px;
+  padding: 18px;
 }
 
 .diets-page__state--error {
@@ -86,6 +97,7 @@
 
 .diets-page__state p {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .diets-page__state--empty {
@@ -103,18 +115,16 @@
 
 .diets-page__list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .diets-page__item {
-  align-items: center;
-  display: flex;
-  gap: 20px;
-  justify-content: space-between;
-  padding: 20px;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
 }
 
 .diets-page__details {
@@ -122,34 +132,47 @@
 }
 
 .diets-page__actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 360px;
+  min-width: 0;
+}
+
+.diets-page__actions > .button {
+  font-size: 13px;
+  gap: 6px;
+  min-height: 40px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+  width: 100%;
 }
 
 .diets-page__title-row {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .diets-page__title-row h2 {
   color: var(--color-ink);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 650;
   margin: 0;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .diets-page__badge {
   border-radius: 20px;
   display: inline-flex;
+  flex: 0 0 auto;
   font-size: 11px;
   font-weight: 650;
-  padding: 6px 10px;
+  padding: 5px 9px;
 }
 
 .diets-page__badge--draft {
@@ -170,7 +193,9 @@
 .diets-page__meta {
   color: var(--color-text-muted);
   font-size: 12px;
-  margin: 8px 0 0;
+  line-height: 1.5;
+  margin: 7px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .diets-page__success,
@@ -178,8 +203,9 @@
   border-radius: 9px;
   font-size: 13px;
   line-height: 1.5;
-  margin: 0 0 16px;
-  padding: 13px 15px;
+  margin: 0 0 14px;
+  overflow-wrap: anywhere;
+  padding: 12px 14px;
 }
 
 .diets-page__success {
@@ -198,28 +224,76 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 580px) {
+@media (min-width: 760px) {
+  .diets-page__back {
+    margin-bottom: 20px;
+  }
+
   .diets-page__heading {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: flex-end;
+    flex-direction: row;
+    gap: 18px;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .diets-page__heading h1 {
+    font-size: clamp(32px, 5vw, 46px);
+    margin-top: 10px;
+  }
+
+  .diets-page__heading p {
+    max-width: 560px;
   }
 
   .diets-page__new {
-    width: 100%;
+    width: auto;
+  }
+
+  .diets-page__state {
+    flex-wrap: nowrap;
+    min-height: 130px;
+    padding: 24px;
+  }
+
+  .diets-page__list {
+    gap: 12px;
   }
 
   .diets-page__item {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 16px;
+    align-items: center;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    padding: 18px;
   }
 
   .diets-page__actions {
-    width: 100%;
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: none;
   }
 
   .diets-page__actions > .button {
-    flex: 1 1 auto;
-    width: 100%;
+    min-height: 44px;
+    width: auto;
+  }
+
+  .diets-page__title-row {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .diets-page__title-row h2 {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 520px) and (max-width: 759px) {
+  .diets-page__new {
+    width: fit-content;
   }
 }
